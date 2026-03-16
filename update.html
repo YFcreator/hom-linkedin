@@ -354,6 +354,8 @@
     if (saved) { saved.style.display = 'block'; setTimeout(function() { saved.style.display = 'none'; }, 2000); }
   }
 
+  function saveGithubToken() { saveToken('github'); }
+
   function loadTokens() {
     var gt = localStorage.getItem('hom_github_token');
     if (gt) {
