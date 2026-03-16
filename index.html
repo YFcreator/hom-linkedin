@@ -1020,8 +1020,16 @@
     <div class="card" style="margin-bottom: 20px; background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
       <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">⚡ Aggiorna Web App</div>
       <div style="font-size: 13px; color: var(--gray-light); margin-bottom: 16px;">Quando Claude aggiorna il codice, premi questo bottone per applicare le modifiche automaticamente.</div>
+      <div class="kb-field" style="margin-bottom: 12px;">
+        <label>GitHub Token</label>
+        <div class="api-input-wrap">
+          <input type="password" id="github-token" placeholder="ghp_..." style="font-family: 'DM Mono', monospace;">
+          <button class="btn btn-outline" onclick="saveGithubToken()">Salva</button>
+        </div>
+        <div style="font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace;">Salvato solo nel browser. Serve permesso "repo".</div>
+      </div>
       <button class="btn btn-primary" onclick="updateApp()" id="update-btn" style="width: 100%; justify-content: center; padding: 14px;">
-        ⚡ Aggiorna App da Gist
+        ⚡ Aggiorna App da GitHub
       </button>
       <div id="update-status" style="margin-top: 10px; font-size: 12px; color: var(--gray); font-family: 'DM Mono', monospace;"></div>
     </div>
@@ -1651,29 +1659,62 @@ document.getElementById('review-modal').addEventListener('click', function(e) {
 });
 
 // ===== UPDATE APP =====
+function saveGithubToken() {
+  const token = document.getElementById('github-token').value.trim();
+  if (!token) return showToast('Inserisci un token valido', 'error');
+  localStorage.setItem('github_token', token);
+  document.getElementById('github-token').value = '';
+  showToast('✅ Token GitHub salvato!', 'success');
+}
+
 async function updateApp() {
   const btn = document.getElementById('update-btn');
   const status = document.getElementById('update-status');
+  const token = localStorage.getItem('github_token');
+  if (!token) {
+    status.textContent = '❌ Inserisci prima il GitHub Token nelle impostazioni';
+    showToast('Token GitHub mancante', 'error');
+    return;
+  }
   btn.disabled = true;
   btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Aggiornamento in corso...';
-  status.textContent = 'Connessione a N8N...';
+  status.textContent = 'Connessione a GitHub...';
   try {
-    const res = await fetch('https://yyyyyyyyyy.app.n8n.cloud/webhook/6030d727-746a-4fcf-8363-26aa81d7d737', {
-      method: 'GET',
+    // Get current file SHA
+    const fileRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
     });
-    if (res.ok) {
-      status.textContent = '✅ Aggiornamento avviato! Ricarica la pagina tra 30 secondi.';
-      showToast('✅ N8N sta aggiornando la app!', 'success');
-    } else {
-      status.textContent = '❌ Errore — controlla N8N';
-      showToast('Errore aggiornamento', 'error');
-    }
+    if (!fileRes.ok) throw new Error('Errore lettura file GitHub');
+    const fileData = await fileRes.json();
+    const sha = fileData.sha;
+
+    // Get latest content from Gist
+    status.textContent = 'Scarico aggiornamento da Gist...';
+    const gistRes = await fetch('https://gist.githubusercontent.com/YFcreator/24a834c0a6ab3a74d007903ea5bc577d/raw/index.html');
+    if (!gistRes.ok) throw new Error('Errore lettura Gist');
+    const newContent = await gistRes.text();
+    const encoded = btoa(unescape(encodeURIComponent(newContent)));
+
+    // Update file on GitHub
+    status.textContent = 'Pubblicazione su GitHub...';
+    const updateRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ message: 'Update app', content: encoded, sha: sha })
+    });
+    if (!updateRes.ok) throw new Error('Errore aggiornamento GitHub');
+    status.textContent = '✅ App aggiornata! Ricarica la pagina tra 30 secondi.';
+    showToast('✅ App aggiornata su GitHub!', 'success');
   } catch(e) {
-    status.textContent = '❌ Errore di connessione';
-    showToast('Errore di connessione', 'error');
+    status.textContent = '❌ Errore: ' + e.message;
+    showToast('Errore aggiornamento', 'error');
   }
   btn.disabled = false;
-  btn.innerHTML = '⚡ Aggiorna App da Gist';
+  btn.innerHTML = '⚡ Aggiorna App da GitHub';
 }
 
 // ===== START =====
@@ -1697,6 +1738,7 @@ window.testApiKey = testApiKey;
 window.updatePreview = updatePreview;
 window.updateModalPreview = updateModalPreview;
 window.updateApp = updateApp;
+window.saveGithubToken = saveGithubToken;
 </script>
 </body>
 </html>
