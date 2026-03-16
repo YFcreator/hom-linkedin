@@ -70,27 +70,19 @@
   }
 
   .sidebar-logo {
-    padding: 0 24px 32px;
+    padding: 0 24px 28px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 24px;
   }
 
-  .sidebar-logo .logo-text {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 22px;
-    letter-spacing: 0.08em;
-    color: var(--gold);
-    display: block;
-  }
-
   .sidebar-logo .logo-sub {
     font-family: 'DM Mono', monospace;
-    font-size: 10px;
+    font-size: 9px;
     color: var(--gray);
-    letter-spacing: 0.15em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    margin-top: 4px;
+    margin-top: 6px;
+    display: block;
   }
 
   .nav-item {
@@ -722,7 +714,15 @@
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <span class="logo-text">HOM</span>
+    <svg width="120" height="72" viewBox="0 0 120 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Rombo pittogramma HOM -->
+      <g transform="translate(8, 2)">
+        <polygon points="32,2 62,18 32,34 2,18" fill="#c8a96e"/>
+        <ellipse cx="32" cy="18" rx="8" ry="5" fill="#0a0a0a"/>
+      </g>
+      <!-- Scritta HOM -->
+      <text x="8" y="62" font-family="Syne, sans-serif" font-weight="800" font-size="22" letter-spacing="4" fill="#ffffff">HOM</text>
+    </svg>
     <span class="logo-sub">LinkedIn Manager</span>
   </div>
 
@@ -1007,7 +1007,7 @@
       </div>
     </div>
 
-    <div class="card" style="margin-bottom: 20px; cursor: pointer;" onclick="showView('knowledge')">
+
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div>
           <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; color: var(--gold);">◉ Knowledge Base</div>
@@ -1015,6 +1015,27 @@
         </div>
         <span style="color: var(--gold); font-size: 20px;">→</span>
       </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px; background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
+      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">⚡ Dev Chat — Aggiorna App</div>
+      <div style="font-size: 13px; color: var(--gray-light); margin-bottom: 16px;">Scrivi le modifiche che vuoi fare. Claude le applica e pubblica su GitHub automaticamente.</div>
+      <div class="kb-field" style="margin-bottom: 12px;">
+        <label>GitHub Token</label>
+        <div class="api-input-wrap">
+          <input type="password" id="github-token" placeholder="ghp_..." style="font-family: 'DM Mono', monospace;">
+          <button class="btn btn-outline" onclick="saveGithubToken()">Salva</button>
+        </div>
+        <div style="font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace;">Salvato solo nel browser. Serve permesso "repo".</div>
+      </div>
+      <div id="dev-chat-messages" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 12px; min-height: 80px; max-height: 300px; overflow-y: auto; margin-bottom: 12px; font-size: 13px; font-family: 'DM Mono', monospace; color: var(--gray-light);">
+        <div style="color: var(--gray);">Pronto. Scrivi cosa vuoi modificare...</div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: flex-end;">
+        <textarea id="dev-chat-input" placeholder="Es: metti il logo in bianco, aggiungi un campo per il tono del post..." style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 13px; resize: vertical; min-height: 60px;"></textarea>
+        <button class="btn btn-primary" onclick="sendDevChat()" id="dev-chat-btn" style="padding: 10px 16px; white-space: nowrap;">⚡ Invia</button>
+      </div>
+      <div id="dev-chat-status" style="margin-top: 8px; font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace;"></div>
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
@@ -1641,6 +1662,146 @@ document.getElementById('review-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 
+// ===== UPDATE APP =====
+async function sendDevChat() {
+  const input = document.getElementById('dev-chat-input');
+  const messages = document.getElementById('dev-chat-messages');
+  const status = document.getElementById('dev-chat-status');
+  const btn = document.getElementById('dev-chat-btn');
+  const instruction = input.value.trim();
+  if (!instruction) return;
+
+  const apiKey = localStorage.getItem('anthropic_key');
+  const githubToken = localStorage.getItem('github_token');
+  if (!apiKey) { status.textContent = '❌ Inserisci prima la API Key Anthropic'; return; }
+  if (!githubToken) { status.textContent = '❌ Inserisci prima il GitHub Token'; return; }
+
+  // Show user message
+  messages.innerHTML += `<div style="color: var(--gold); margin-bottom: 8px;">▶ ${instruction}</div>`;
+  input.value = '';
+  btn.disabled = true;
+  status.textContent = '⏳ Claude sta leggendo il codice attuale...';
+
+  try {
+    // Get current code from GitHub
+    const fileRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      headers: { 'Authorization': `token ${githubToken}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    const fileData = await fileRes.json();
+    const currentCode = atob(fileData.content.replace(/\n/g, ''));
+    const sha = fileData.sha;
+
+    status.textContent = '⏳ Claude sta generando le modifiche...';
+
+    // Call Claude API
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 8000,
+        messages: [{
+          role: 'user',
+          content: `Sei uno sviluppatore. Ti do il codice HTML completo di una web app e una richiesta di modifica. Rispondi SOLO con il codice HTML completo modificato, senza spiegazioni, senza markdown, senza backtick.
+
+RICHIESTA: ${instruction}
+
+CODICE ATTUALE:
+${currentCode}`
+        }]
+      })
+    });
+    const claudeData = await claudeRes.json();
+    const newCode = claudeData.content[0].text;
+
+    status.textContent = '⏳ Pubblicazione su GitHub...';
+
+    // Encode and publish
+    const encoded = btoa(unescape(encodeURIComponent(newCode)));
+    const updateRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${githubToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ message: `Dev: ${instruction}`, content: encoded, sha })
+    });
+
+    if (!updateRes.ok) throw new Error('Errore GitHub');
+    messages.innerHTML += `<div style="color: var(--green); margin-bottom: 8px;">✅ Fatto! Ricarica tra 30 secondi.</div>`;
+    status.textContent = '✅ App aggiornata su GitHub!';
+    showToast('✅ App aggiornata!', 'success');
+  } catch(e) {
+    messages.innerHTML += `<div style="color: var(--red); margin-bottom: 8px;">❌ Errore: ${e.message}</div>`;
+    status.textContent = '❌ ' + e.message;
+  }
+  btn.disabled = false;
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function saveGithubToken() {
+  const token = document.getElementById('github-token').value.trim();
+  if (!token) return showToast('Inserisci un token valido', 'error');
+  localStorage.setItem('github_token', token);
+  document.getElementById('github-token').value = '';
+  showToast('✅ Token GitHub salvato!', 'success');
+}
+
+async function updateApp() {
+  const btn = document.getElementById('update-btn');
+  const status = document.getElementById('update-status');
+  const token = localStorage.getItem('github_token');
+  if (!token) {
+    status.textContent = '❌ Inserisci prima il GitHub Token nelle impostazioni';
+    showToast('Token GitHub mancante', 'error');
+    return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Aggiornamento in corso...';
+  status.textContent = 'Connessione a GitHub...';
+  try {
+    // Get current file SHA
+    const fileRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!fileRes.ok) throw new Error('Errore lettura file GitHub');
+    const fileData = await fileRes.json();
+    const sha = fileData.sha;
+
+    // Get latest content from Gist
+    status.textContent = 'Scarico aggiornamento da Gist...';
+    const gistRes = await fetch('https://gist.githubusercontent.com/YFcreator/24a834c0a6ab3a74d007903ea5bc577d/raw/index.html');
+    if (!gistRes.ok) throw new Error('Errore lettura Gist');
+    const newContent = await gistRes.text();
+    const encoded = btoa(unescape(encodeURIComponent(newContent)));
+
+    // Update file on GitHub
+    status.textContent = 'Pubblicazione su GitHub...';
+    const updateRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ message: 'Update app', content: encoded, sha: sha })
+    });
+    if (!updateRes.ok) throw new Error('Errore aggiornamento GitHub');
+    status.textContent = '✅ App aggiornata! Ricarica la pagina tra 30 secondi.';
+    showToast('✅ App aggiornata su GitHub!', 'success');
+  } catch(e) {
+    status.textContent = '❌ Errore: ' + e.message;
+    showToast('Errore aggiornamento', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '⚡ Aggiorna App da GitHub';
+}
+
 // ===== START =====
 init();
 window.showView = showView;
@@ -1661,6 +1822,9 @@ window.saveApiKey = saveApiKey;
 window.testApiKey = testApiKey;
 window.updatePreview = updatePreview;
 window.updateModalPreview = updateModalPreview;
+window.updateApp = updateApp;
+window.saveGithubToken = saveGithubToken;
+window.sendDevChat = sendDevChat;
 </script>
 </body>
 </html>
