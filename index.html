@@ -70,27 +70,19 @@
   }
 
   .sidebar-logo {
-    padding: 0 24px 32px;
+    padding: 0 24px 28px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 24px;
   }
 
-  .sidebar-logo .logo-text {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 22px;
-    letter-spacing: 0.08em;
-    color: var(--gold);
-    display: block;
-  }
-
   .sidebar-logo .logo-sub {
     font-family: 'DM Mono', monospace;
-    font-size: 10px;
+    font-size: 9px;
     color: var(--gray);
-    letter-spacing: 0.15em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    margin-top: 4px;
+    margin-top: 6px;
+    display: block;
   }
 
   .nav-item {
@@ -722,7 +714,15 @@
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <span class="logo-text">HOM</span>
+    <svg width="120" height="72" viewBox="0 0 120 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Rombo pittogramma HOM -->
+      <g transform="translate(8, 2)">
+        <polygon points="32,2 62,18 32,34 2,18" fill="#c8a96e"/>
+        <ellipse cx="32" cy="18" rx="8" ry="5" fill="#0a0a0a"/>
+      </g>
+      <!-- Scritta HOM -->
+      <text x="8" y="62" font-family="Syne, sans-serif" font-weight="800" font-size="22" letter-spacing="4" fill="#c8a96e">HOM</text>
+    </svg>
     <span class="logo-sub">LinkedIn Manager</span>
   </div>
 
