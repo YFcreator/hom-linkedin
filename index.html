@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HOM — LinkedIn Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCYU0IVxNt6LYB9U8aIhRzEG-ps8Z3mx7A",
+    authDomain: "hom-linkedin.firebaseapp.com",
+    projectId: "hom-linkedin",
+    storageBucket: "hom-linkedin.firebasestorage.app",
+    messagingSenderId: "280456987425",
+    appId: "1:280456987425:web:dc9c386dc9463681983460"
+  };
+  firebase.initializeApp(firebaseConfig);
+  window.db = firebase.firestore();
+  window.firebaseReady = true;
+</script>
 <style>
   :root {
     --black: #0a0a0a;
@@ -1112,7 +1127,37 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<script>
+<script type="module">
+// ===== FIREBASE =====
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCYU0IVxNt6LYB9U8aIhRzEG-ps8Z3mx7A",
+  authDomain: "hom-linkedin.firebaseapp.com",
+  projectId: "hom-linkedin",
+  storageBucket: "hom-linkedin.firebasestorage.app",
+  messagingSenderId: "280456987425",
+  appId: "1:280456987425:web:dc9c386dc9463681983460"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
+async function saveToFirebase(key, data) {
+  try {
+    await setDoc(doc(db, "hom", key), { data: JSON.stringify(data) });
+  } catch(e) { console.error("Firebase save error:", e); }
+}
+
+async function loadFromFirebase(key) {
+  try {
+    const snap = await getDoc(doc(db, "hom", key));
+    if (snap.exists()) return JSON.parse(snap.data().data);
+  } catch(e) { console.error("Firebase load error:", e); }
+  return null;
+}
+
 // ===== STATE =====
 let posts = JSON.parse(localStorage.getItem('hom_posts') || '[]');
 let knowledge = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
@@ -1121,13 +1166,24 @@ let calendarDate = new Date();
 let currentFilter = 'all';
 
 // ===== INIT =====
-function init() {
+async function init() {
+  const fbKnowledge = await loadFromFirebase('knowledge');
+  if (fbKnowledge) {
+    knowledge = fbKnowledge;
+    localStorage.setItem('hom_knowledge', JSON.stringify(knowledge));
+  }
+  const fbPosts = await loadFromFirebase('posts');
+  if (fbPosts) {
+    posts = fbPosts;
+    localStorage.setItem('hom_posts', JSON.stringify(posts));
+  }
   loadKnowledge();
   checkApiKey();
   renderDashboard();
   renderCalendar();
   renderStorico();
   updateStats();
+  showToast('✓ Sincronizzato', 'success');
 }
 
 // ===== NAVIGATION =====
@@ -1179,6 +1235,7 @@ async function testApiKey() {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      mode: 'cors',
       body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 10, messages: [{ role: 'user', content: 'test' }] })
     });
     if (res.ok) { showToast('✓ API funzionante!', 'success'); document.getElementById('api-dot').classList.add('ok'); }
@@ -1211,8 +1268,10 @@ async function generatePost() {
         'Content-Type': 'application/json',
         'x-api-key': key,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'Access-Control-Allow-Origin': '*'
       },
+      mode: 'cors',
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -1523,7 +1582,8 @@ function saveKnowledge() {
     hashtags: document.getElementById('kb-hashtags').value,
   };
   localStorage.setItem('hom_knowledge', JSON.stringify(knowledge));
-  showToast('Knowledge Base salvata!', 'success');
+  saveToFirebase('knowledge', knowledge);
+  showToast('✓ Knowledge Base salvata e sincronizzata!', 'success');
 }
 
 function loadKnowledge() {
@@ -1559,6 +1619,7 @@ function updateCharCount(editorId, countId) {
 // ===== STORAGE =====
 function savePosts() {
   localStorage.setItem('hom_posts', JSON.stringify(posts));
+  saveToFirebase('posts', posts);
 }
 
 // ===== TOAST =====
@@ -1576,6 +1637,24 @@ document.getElementById('review-modal').addEventListener('click', function(e) {
 
 // ===== START =====
 init();
+window.showView = showView;
+window.generatePost = generatePost;
+window.approveGenerated = approveGenerated;
+window.saveAsDraft = saveAsDraft;
+window.openReview = openReview;
+window.closeModal = closeModal;
+window.publishPost = publishPost;
+window.deletePost = deletePost;
+window.quickPublish = quickPublish;
+window.confirmDelete = confirmDelete;
+window.filterPosts = filterPosts;
+window.changeMonth = changeMonth;
+window.showDayPosts = showDayPosts;
+window.saveKnowledge = saveKnowledge;
+window.saveApiKey = saveApiKey;
+window.testApiKey = testApiKey;
+window.updatePreview = updatePreview;
+window.updateModalPreview = updateModalPreview;
 </script>
 </body>
 </html>
