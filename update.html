@@ -430,7 +430,8 @@
         setStatus('Pubblicazione su GitHub...');
         addMsg('Modifica generata. Pubblicazione...', 'info');
 
-        var newCode = claudeData.content[0].text;
+        // N8N returns the text directly or wrapped
+        var newCode = typeof claudeData === 'string' ? claudeData : (claudeData.content ? claudeData.content[0].text : (claudeData.text || JSON.stringify(claudeData)));
 
         // Clean up in case Claude added markdown
         newCode = newCode.replace(/^```html\n?/, '').replace(/\n?```$/, '').trim();
