@@ -379,12 +379,14 @@
   }
 
   // ===== MAIN FUNCTION =====
-    function sendInstruction() {
+      function sendInstruction() {
     var instruction = document.getElementById('instruction').value.trim();
     var githubToken = localStorage.getItem('hom_github_token');
+    var apiKey = localStorage.getItem('hom_api_key');
 
     if (!instruction) { setStatus('Scrivi prima una istruzione'); return; }
     if (!githubToken) { setStatus('Inserisci e salva il GitHub Token'); return; }
+    if (!apiKey) { setStatus('API Key Anthropic mancante - vai su Impostazioni nell app principale e salva'); return; }
 
     var btn = document.getElementById('send-btn');
     btn.disabled = true;
@@ -392,22 +394,87 @@
     document.getElementById('instruction').value = '';
 
     addMsg('> ' + instruction, 'user');
-    setStatus('Invio a Claude via N8N...');
+    setStatus('Lettura codice da GitHub...');
 
-    var n8nUrl = 'https://yyyyyyyyy.app.n8n.cloud/webhook/ed25be62-be9f-445d-ad05-c089ddc99f7d?instruction=' + encodeURIComponent(instruction) + '&token=' + encodeURIComponent(githubToken);
-
-    fetch(n8nUrl)
+    // Step 1: Get current file from GitHub
+    fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      headers: {
+        'Authorization': 'token ' + githubToken,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    })
     .then(function(res) {
-      if (!res.ok) throw new Error('Errore N8N (' + res.status + ')');
+      if (!res.ok) throw new Error('Errore GitHub lettura (' + res.status + ')');
       return res.json();
     })
-    .then(function(data) {
+    .then(function(fileData) {
+      var currentCode = atob(fileData.content.replace(/
+/g, ''));
+      var sha = fileData.sha;
+
+      addMsg('Codice letto. Invio a Claude...', 'info');
+      setStatus('Claude sta generando le modifiche...');
+
+      var prompt = 'Sei uno sviluppatore web esperto. Ti do il codice HTML completo di una web app e una richiesta di modifica. Rispondi SOLO con il codice HTML completo modificato, senza spiegazioni, senza markdown, senza backtick.
+
+RICHIESTA: ' + instruction + '
+
+CODICE ATTUALE:
+' + currentCode;
+
+      // Step 2: Call Claude directly
+      return fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Errore Claude (' + res.status + ')');
+        return res.json();
+      })
+      .then(function(claudeData) {
+        var newCode = claudeData.content[0].text;
+        newCode = newCode.replace(/^```html
+?/, '').replace(/
+?```$/, '').trim();
+
+        addMsg('Modifica generata. Pubblicazione su GitHub...', 'info');
+        setStatus('Pubblicazione su GitHub...');
+
+        var encoded = btoa(unescape(encodeURIComponent(newCode)));
+
+        // Step 3: Update GitHub
+        return fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'token ' + githubToken,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: 'Update: ' + instruction,
+            content: encoded,
+            sha: sha
+          })
+        });
+      });
+    })
+    .then(function(res) {
+      if (!res.ok) return res.json().then(function(e) { throw new Error('GitHub update: ' + (e.message || res.status)); });
       addMsg('Fatto! Ricarica tra 30 secondi.', 'ok');
       setStatus('App aggiornata!');
     })
     .catch(function(e) {
       addMsg('Errore: ' + e.message, 'err');
-      setStatus('Errore — riprova');
+      setStatus('Errore - riprova');
     })
     .finally(function() {
       btn.disabled = false;
