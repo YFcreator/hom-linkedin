@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>HOM — Aggiorna App</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #f5f2ec;
+    --cream: #ede9e0;
+    --gold: #c8a96e;
+    --gold-light: #e2c98a;
+    --gray: #6b6560;
+    --gray-light: #b5b0a8;
+    --red: #c94f3a;
+    --green: #3a7c5a;
+    --border: rgba(200,169,110,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+
+  .logo svg { width: 40px; height: 40px; }
+
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: var(--white);
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--gray-light);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+
+  .page-sub {
+    font-size: 14px;
+    color: var(--gray-light);
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .field { margin-bottom: 12px; }
+
+  .field label {
+    display: block;
+    font-size: 11px;
+    color: var(--gray-light);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .field input, .field textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--white);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+
+  .field input:focus, .field textarea:focus {
+    border-color: var(--gold);
+  }
+
+  .field textarea {
+    min-height: 100px;
+    resize: vertical;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: var(--gray);
+    font-family: 'DM Mono', monospace;
+    margin-top: 6px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    -webkit-appearance: none;
+    width: 100%;
+  }
+
+  .btn-primary {
+    background: var(--gold);
+    color: var(--black);
+  }
+
+  .btn-primary:active { opacity: 0.8; transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    width: auto;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .input-row input { flex: 1; }
+
+  .messages {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    min-height: 80px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .msg-placeholder { color: var(--gray); }
+  .msg-user { color: var(--gold); margin-bottom: 6px; }
+  .msg-info { color: var(--gray-light); margin-bottom: 4px; }
+  .msg-ok { color: var(--green); margin-bottom: 6px; font-weight: bold; }
+  .msg-err { color: var(--red); margin-bottom: 6px; }
+
+  .status {
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    color: var(--gray);
+    min-height: 18px;
+    margin-top: 8px;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gray);
+    margin-right: 6px;
+  }
+
+  .dot.ok { background: var(--green); }
+  .dot.err { background: var(--red); }
+
+  .separator {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--gray-light);
+    font-size: 13px;
+    text-decoration: none;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .back-link:hover { color: var(--gold); }
+
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(10,10,10,0.3);
+    border-top-color: var(--black);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .saved-indicator {
+    font-size: 11px;
+    color: var(--green);
+    font-family: 'DM Mono', monospace;
+    display: none;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <a href="/hom-linkedin" class="logo">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+        <polygon points="20,2 38,12 20,22 2,12" fill="#c8a96e"/>
+        <ellipse cx="20" cy="12" rx="5" ry="3" fill="#0a0a0a"/>
+      </svg>
+      <div>
+        <div class="logo-text">HOM</div>
+        <div class="logo-sub">LinkedIn Manager</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="page-title">⚡ Aggiorna App</div>
+  <div class="page-sub">Scrivi le modifiche che vuoi fare all'app. Claude le applica e pubblica su GitHub automaticamente.</div>
+
+  <!-- TOKENS -->
+  <div class="card">
+    <div class="card-title">Configurazione</div>
+
+    <div class="field">
+      <label>GitHub Token</label>
+      <div class="input-row">
+        <input type="password" id="github-token" placeholder="ghp_..." autocomplete="off">
+        <button class="btn btn-outline" onclick="saveToken('github')">Salva</button>
+      </div>
+      <div class="saved-indicator" id="github-saved">✓ Salvato</div>
+      <div class="field-hint">Permesso "repo" richiesto</div>
+    </div>
+
+  </div>
+
+  <!-- CHAT -->
+  <div class="card">
+    <div class="card-title">Modifica App</div>
+
+    <div class="messages" id="messages">
+      <div class="msg-placeholder" id="placeholder">Pronto. Scrivi cosa vuoi modificare...</div>
+    </div>
+
+    <div class="field">
+      <textarea id="instruction" placeholder="Es: metti il logo rosso, aggiungi un campo note ai post, cambia il colore del bottone principale in blu..."></textarea>
+    </div>
+
+    <button class="btn btn-primary" id="send-btn" onclick="sendInstruction()">
+      ⚡ Invia a Claude
+    </button>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <hr class="separator">
+  <a href="/hom-linkedin" class="back-link">← Torna all'app</a>
+
+</div>
+
+<script>
+  // ===== TOKEN MANAGEMENT =====
+  function saveToken(type) {
+    var input = document.getElementById(type + '-token');
+    var val = input.value.trim();
+    if (!val) return;
+    localStorage.setItem('hom_' + type + '_token', val);
+    input.value = '';
+    var saved = document.getElementById(type + '-saved');
+    if (saved) { saved.style.display = 'block'; setTimeout(function() { saved.style.display = 'none'; }, 2000); }
+  }
+
+  function loadTokens() {
+    var gt = localStorage.getItem('hom_github_token');
+    if (gt) {
+      var el = document.getElementById('github-token');
+      if (el) el.placeholder = 'ghp_••••••••••••••••';
+    }
+  }
+
+  // ===== ADD MESSAGE =====
+  function addMsg(text, type) {
+    var messages = document.getElementById('messages');
+    var placeholder = document.getElementById('placeholder');
+    if (placeholder) { placeholder.style.display = 'none'; }
+    var div = document.createElement('div');
+    div.className = 'msg-' + type;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function setStatus(text) {
+    document.getElementById('status').textContent = text;
+  }
+
+  // ===== MAIN FUNCTION =====
+  function sendInstruction() {
+    var instruction = document.getElementById('instruction').value.trim();
+    var githubToken = localStorage.getItem('hom_github_token');
+    var apiKey = localStorage.getItem('hom_api_key');
+
+    if (!instruction) { setStatus('Scrivi prima una istruzione'); return; }
+    if (!githubToken) { setStatus('Inserisci e salva il GitHub Token'); return; }
+    if (!apiKey) { setStatus('API Key Anthropic non configurata — vai su Impostazioni nell\'app'); return; }
+
+    var btn = document.getElementById('send-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Elaborazione...';
+    document.getElementById('instruction').value = '';
+
+    addMsg('> ' + instruction, 'user');
+    setStatus('Lettura codice da GitHub...');
+
+    // Step 1: Get current file from GitHub
+    fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      headers: {
+        'Authorization': 'token ' + githubToken,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error('Errore lettura GitHub (' + res.status + ')');
+      return res.json();
+    })
+    .then(function(fileData) {
+      var currentCode = atob(fileData.content.replace(/\n/g, ''));
+      var sha = fileData.sha;
+
+      setStatus('Claude sta generando le modifiche...');
+      addMsg('Codice letto. Invio a Claude...', 'info');
+
+      var prompt = 'Sei uno sviluppatore web esperto. Ti do il codice HTML completo di una web app e una richiesta di modifica. Rispondi SOLO con il codice HTML completo modificato, senza spiegazioni, senza markdown, senza backtick, senza nient\'altro prima o dopo il codice HTML.\n\nRICHIESTA: ' + instruction + '\n\nCODICE ATTUALE:\n' + currentCode;
+
+      // Step 2: Call Claude via N8N proxy
+      return fetch('https://yyyyyyyyy.app.n8n.cloud/webhook/538aa663-a579-45d5-b7e9-983de57767a7', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt })
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Errore N8N (' + res.status + ')');
+        return res.json();
+      })
+      .then(function(claudeData) {
+        setStatus('Pubblicazione su GitHub...');
+        addMsg('Modifica generata. Pubblicazione...', 'info');
+
+        var newCode = claudeData.content[0].text;
+
+        // Clean up in case Claude added markdown
+        newCode = newCode.replace(/^```html\n?/, '').replace(/\n?```$/, '').trim();
+
+        var encoded = btoa(unescape(encodeURIComponent(newCode)));
+
+        // Step 3: Update GitHub
+        return fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'token ' + githubToken,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: 'Update: ' + instruction,
+            content: encoded,
+            sha: sha
+          })
+        });
+      });
+    })
+    .then(function(res) {
+      if (!res.ok) return res.json().then(function(e) { throw new Error('GitHub: ' + (e.message || res.status)); });
+      addMsg('✅ Fatto! Ricarica l\'app tra 30 secondi.', 'ok');
+      setStatus('App aggiornata su GitHub!');
+    })
+    .catch(function(e) {
+      addMsg('❌ Errore: ' + e.message, 'err');
+      setStatus('Errore — riprova');
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '⚡ Invia a Claude';
+    });
+  }
+
+  // ===== ENTER TO SEND (desktop) =====
+  document.addEventListener('DOMContentLoaded', function() {
+    loadTokens();
+    var textarea = document.getElementById('instruction');
+    textarea.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        sendInstruction();
+      }
+    });
+  });
+</script>
+</body>
+</html>
