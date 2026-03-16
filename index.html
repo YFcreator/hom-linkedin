@@ -1671,7 +1671,7 @@ async function sendDevChat() {
   var instruction = input.value.trim();
   if (!instruction) return;
 
-  var apiKey = localStorage.getItem('anthropic_key');
+  var apiKey = localStorage.getItem('hom_api_key');
   var githubToken = localStorage.getItem('github_token');
   if (!apiKey) { status.textContent = 'Inserisci prima la API Key Anthropic'; return; }
   if (!githubToken) { status.textContent = 'Inserisci prima il GitHub Token'; return; }
