@@ -310,7 +310,7 @@
       <label>GitHub Token</label>
       <div class="input-row">
         <input type="password" id="github-token" placeholder="ghp_..." autocomplete="off">
-        <button class="btn btn-outline" onclick="saveToken('github')">Salva</button>
+        <button class="btn btn-outline" onclick="saveGithubToken()">Salva</button>
       </div>
       <div class="saved-indicator" id="github-saved">✓ Salvato</div>
       <div class="field-hint">Permesso "repo" richiesto</div>
@@ -408,8 +408,7 @@
       return res.json();
     })
     .then(function(fileData) {
-      var currentCode = atob(fileData.content.replace(/
-/g, ''));
+      var currentCode = atob(fileData.content.replace(/\n/g, ''));
       var sha = fileData.sha;
 
       addMsg('Codice letto. Invio a Claude...', 'info');
