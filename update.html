@@ -379,14 +379,12 @@
   }
 
   // ===== MAIN FUNCTION =====
-  function sendInstruction() {
+    function sendInstruction() {
     var instruction = document.getElementById('instruction').value.trim();
     var githubToken = localStorage.getItem('hom_github_token');
-    var apiKey = localStorage.getItem('hom_api_key');
 
     if (!instruction) { setStatus('Scrivi prima una istruzione'); return; }
     if (!githubToken) { setStatus('Inserisci e salva il GitHub Token'); return; }
-    if (!apiKey) { setStatus('API Key Anthropic non configurata — vai su Impostazioni nell\'app'); return; }
 
     var btn = document.getElementById('send-btn');
     btn.disabled = true;
@@ -394,73 +392,21 @@
     document.getElementById('instruction').value = '';
 
     addMsg('> ' + instruction, 'user');
-    setStatus('Lettura codice da GitHub...');
+    setStatus('Invio a Claude via N8N...');
 
-    // Step 1: Get current file from GitHub
-    fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
-      headers: {
-        'Authorization': 'token ' + githubToken,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    })
+    var n8nUrl = 'https://yyyyyyyyy.app.n8n.cloud/webhook/ed25be62-be9f-445d-ad05-c089ddc99f7d?instruction=' + encodeURIComponent(instruction) + '&token=' + encodeURIComponent(githubToken);
+
+    fetch(n8nUrl)
     .then(function(res) {
-      if (!res.ok) throw new Error('Errore lettura GitHub (' + res.status + ')');
+      if (!res.ok) throw new Error('Errore N8N (' + res.status + ')');
       return res.json();
     })
-    .then(function(fileData) {
-      var currentCode = atob(fileData.content.replace(/\n/g, ''));
-      var sha = fileData.sha;
-
-      setStatus('Claude sta generando le modifiche...');
-      addMsg('Codice letto. Invio a Claude...', 'info');
-
-      var prompt = 'Sei uno sviluppatore web esperto. Ti do il codice HTML completo di una web app e una richiesta di modifica. Rispondi SOLO con il codice HTML completo modificato, senza spiegazioni, senza markdown, senza backtick, senza nient\'altro prima o dopo il codice HTML.\n\nRICHIESTA: ' + instruction + '\n\nCODICE ATTUALE:\n' + currentCode;
-
-      // Step 2: Call Claude via N8N proxy
-      return fetch('https://yyyyyyyyy.app.n8n.cloud/webhook/538aa663-a579-45d5-b7e9-983de57767a7', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt })
-      })
-      .then(function(res) {
-        if (!res.ok) throw new Error('Errore N8N (' + res.status + ')');
-        return res.json();
-      })
-      .then(function(claudeData) {
-        setStatus('Pubblicazione su GitHub...');
-        addMsg('Modifica generata. Pubblicazione...', 'info');
-
-        // N8N returns the text directly or wrapped
-        var newCode = typeof claudeData === 'string' ? claudeData : (claudeData.content ? claudeData.content[0].text : (claudeData.text || JSON.stringify(claudeData)));
-
-        // Clean up in case Claude added markdown
-        newCode = newCode.replace(/^```html\n?/, '').replace(/\n?```$/, '').trim();
-
-        var encoded = btoa(unescape(encodeURIComponent(newCode)));
-
-        // Step 3: Update GitHub
-        return fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
-          method: 'PUT',
-          headers: {
-            'Authorization': 'token ' + githubToken,
-            'Accept': 'application/vnd.github.v3+json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            message: 'Update: ' + instruction,
-            content: encoded,
-            sha: sha
-          })
-        });
-      });
-    })
-    .then(function(res) {
-      if (!res.ok) return res.json().then(function(e) { throw new Error('GitHub: ' + (e.message || res.status)); });
-      addMsg('✅ Fatto! Ricarica l\'app tra 30 secondi.', 'ok');
-      setStatus('App aggiornata su GitHub!');
+    .then(function(data) {
+      addMsg('Fatto! Ricarica l'app tra 30 secondi.', 'ok');
+      setStatus('App aggiornata!');
     })
     .catch(function(e) {
-      addMsg('❌ Errore: ' + e.message, 'err');
+      addMsg('Errore: ' + e.message, 'err');
       setStatus('Errore — riprova');
     })
     .finally(function() {
