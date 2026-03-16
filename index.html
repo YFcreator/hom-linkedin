@@ -746,10 +746,6 @@
   </div>
 
   <span class="nav-section">Configurazione</span>
-  <div class="nav-item" onclick="showView('knowledge')">
-    <span class="nav-icon">◉</span>
-    <span>Knowledge Base</span>
-  </div>
   <div class="nav-item" onclick="showView('impostazioni')">
     <span class="nav-icon">◌</span>
     <span>Impostazioni</span>
@@ -1009,6 +1005,25 @@
         <div class="page-title">Impostazioni</div>
         <div class="page-sub">Configura le API e le preferenze</div>
       </div>
+    </div>
+
+
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; color: var(--gold);">◉ Knowledge Base</div>
+          <div style="font-size: 13px; color: var(--gray-light); margin-top: 4px;">Gestisci le informazioni su HOM per migliorare i post</div>
+        </div>
+        <span style="color: var(--gold); font-size: 20px;">→</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px; background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
+      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">⚡ Aggiorna Web App</div>
+      <div style="font-size: 13px; color: var(--gray-light); margin-bottom: 16px;">Quando Claude aggiorna il codice, premi questo bottone per applicare le modifiche automaticamente.</div>
+      <button class="btn btn-primary" onclick="updateApp()" id="update-btn" style="width: 100%; justify-content: center; padding: 14px;">
+        ⚡ Aggiorna App da Gist
+      </button>
+      <div id="update-status" style="margin-top: 10px; font-size: 12px; color: var(--gray); font-family: 'DM Mono', monospace;"></div>
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
@@ -1634,6 +1649,32 @@ function showToast(msg, type = 'success') {
 document.getElementById('review-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
+
+// ===== UPDATE APP =====
+async function updateApp() {
+  const btn = document.getElementById('update-btn');
+  const status = document.getElementById('update-status');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Aggiornamento in corso...';
+  status.textContent = 'Connessione a N8N...';
+  try {
+    const res = await fetch('https://yyyyyyyyyy.app.n8n.cloud/webhook/6030d727-746a-4fcf-8363-26aa81d7d737', {
+      method: 'GET',
+    });
+    if (res.ok) {
+      status.textContent = '✅ Aggiornamento avviato! Ricarica la pagina tra 30 secondi.';
+      showToast('✅ N8N sta aggiornando la app!', 'success');
+    } else {
+      status.textContent = '❌ Errore — controlla N8N';
+      showToast('Errore aggiornamento', 'error');
+    }
+  } catch(e) {
+    status.textContent = '❌ Errore di connessione';
+    showToast('Errore di connessione', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '⚡ Aggiorna App da Gist';
+}
 
 // ===== START =====
 init();
