@@ -1097,26 +1097,57 @@
     <div class="page-header">
       <div>
         <div class="page-title">Aggiorna App</div>
-        <div class="page-sub">Modifica l'app tramite Claude e pubblica su GitHub</div>
+        <div class="page-sub">Scrivi le modifiche — Claude le applica e pubblica su GitHub</div>
       </div>
     </div>
 
-    <div class="card" style="margin-bottom: 20px; background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
-      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">⚡ Chat con Claude</div>
-      <div style="font-size: 13px; color: var(--gray-light); margin-bottom: 16px;">Apri la pagina di aggiornamento per modificare l'app tramite Claude. Funziona su Chrome — usa update.html per istruzioni dirette.</div>
-      <a href="/hom-linkedin/update.html" style="display: block; text-align: center; background: var(--gold); color: var(--black); padding: 14px; border-radius: 8px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; text-decoration: none; margin-bottom: 12px;">⚡ Apri Chat Aggiornamento</a>
-      <button class="btn btn-outline" onclick="showView('knowledge')" style="width: 100%; justify-content: center; padding: 14px;">◉ Aggiorna Knowledge Base →</button>
+    <!-- TOKEN CONFIG -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+      <div class="card" style="padding: 16px;">
+        <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gray); margin-bottom: 8px;">GitHub Token</div>
+        <div class="api-input-wrap" style="margin-bottom: 0;">
+          <input type="password" id="github-token-input" placeholder="ghp_..." style="font-size: 12px;">
+          <button class="btn btn-outline" onclick="saveGithubToken()" style="white-space: nowrap;">Salva</button>
+        </div>
+        <div id="github-token-status" style="font-size: 11px; color: var(--green); margin-top: 6px; font-family: 'DM Mono', monospace;"></div>
+      </div>
+      <div class="card" style="padding: 16px;">
+        <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gray); margin-bottom: 8px;">API Anthropic</div>
+        <div style="font-size: 12px; color: var(--gray-light); display: flex; align-items: center; gap: 8px; height: 40px;">
+          <div class="api-dot" id="update-api-dot"></div>
+          <span id="update-api-status">Non configurata — vai in Impostazioni</span>
+        </div>
+        <button class="btn btn-ghost" onclick="showView('knowledge')" style="font-size: 12px; padding: 4px 8px; margin-top: 4px;">◉ Knowledge Base →</button>
+      </div>
     </div>
 
-    <div class="card">
-      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">GitHub Token</div>
-      <div style="font-size: 13px; color: var(--gray-light); margin-bottom: 16px;">Il token serve per pubblicare le modifiche direttamente sul repository.</div>
-      <div class="api-input-wrap">
-        <input type="password" id="github-token-input" placeholder="ghp_...">
-        <button class="btn btn-outline" onclick="saveGithubToken()">Salva</button>
+    <!-- CHAT -->
+    <div class="card" style="display: flex; flex-direction: column; height: 520px; padding: 0; overflow: hidden;">
+
+      <!-- messaggi -->
+      <div id="update-chat-messages" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="text-align: center; padding: 40px 20px;">
+          <div style="font-size: 32px; margin-bottom: 12px;">⚡</div>
+          <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px;">Pronto ad aggiornare l'app</div>
+          <div style="font-size: 13px; color: var(--gray); line-height: 1.6;">Descrivi le modifiche che vuoi fare.<br>Claude legge il codice, applica i cambiamenti e pubblica su GitHub.</div>
+        </div>
       </div>
-      <div style="font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace; margin-top: 4px;">Permesso "repo" richiesto — salvato solo nel browser locale</div>
-      <div id="github-token-status" style="font-size: 12px; color: var(--green); margin-top: 8px; font-family: 'DM Mono', monospace;"></div>
+
+      <!-- input area -->
+      <div style="border-top: 1px solid var(--border); padding: 16px; background: rgba(0,0,0,0.2);">
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+          <textarea id="update-chat-input"
+            placeholder="Es: aggiungi un bottone per duplicare i post, cambia il colore primario in blu, aggiungi un campo note nella scheda post..."
+            style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 13px; resize: none; outline: none; line-height: 1.5; min-height: 48px; max-height: 120px; transition: border-color 0.2s;"
+            onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendUpdateMessage();}"
+            oninput="this.style.height='48px';this.style.height=Math.min(this.scrollHeight,120)+'px';"
+            onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+          <button onclick="sendUpdateMessage()" id="update-send-btn"
+            style="background: var(--gold); color: var(--black); border: none; border-radius: 8px; width: 44px; height: 44px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;"
+            onmouseover="this.style.background='var(--gold-light)'" onmouseout="this.style.background='var(--gold)'">↑</button>
+        </div>
+        <div style="font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace; margin-top: 8px;">Enter per inviare · Shift+Enter per andare a capo</div>
+      </div>
     </div>
   </div>
 
@@ -1230,6 +1261,7 @@ function showView(name) {
   if (name === 'calendario') renderCalendar();
   if (name === 'storico') renderStorico();
   if (name === 'dashboard') renderDashboard();
+  if (name === 'aggiorna') initUpdateView();
 }
 
 // ===== API KEY =====
@@ -1841,6 +1873,181 @@ function saveGithubToken() {
   }
 }
 
+// ===== UPDATE CHAT =====
+var updateChatHistory = [];
+
+function initUpdateView() {
+  // Stato API
+  var key = localStorage.getItem('hom_api_key');
+  var dot = document.getElementById('update-api-dot');
+  var txt = document.getElementById('update-api-status');
+  if (key && key.startsWith('sk-ant')) {
+    if (dot) { dot.classList.add('ok'); }
+    if (txt) txt.textContent = 'Configurata ✓';
+  } else {
+    if (dot) dot.classList.remove('ok');
+    if (txt) txt.textContent = 'Non configurata — vai in Impostazioni';
+  }
+  // Token GitHub
+  var ghToken = localStorage.getItem('github_token');
+  var ghInput = document.getElementById('github-token-input');
+  var ghStatus = document.getElementById('github-token-status');
+  if (ghToken && ghInput) {
+    ghInput.value = ghToken;
+    if (ghStatus) ghStatus.textContent = '✓ Token salvato';
+  }
+}
+
+function appendUpdateMessage(role, html) {
+  var container = document.getElementById('update-chat-messages');
+  if (!container) return;
+  var isFirst = container.querySelector('.update-welcome');
+  if (isFirst) isFirst.remove();
+
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'display: flex; gap: 10px; align-items: flex-start; ' + (role === 'user' ? 'flex-direction: row-reverse;' : '');
+
+  var avatar = document.createElement('div');
+  avatar.style.cssText = 'width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; ' +
+    (role === 'user' ? 'background: var(--gold); color: var(--black); font-weight: 700;' : 'background: rgba(200,169,110,0.15); color: var(--gold); border: 1px solid var(--border);');
+  avatar.textContent = role === 'user' ? 'T' : '⚡';
+
+  var bubble = document.createElement('div');
+  bubble.style.cssText = 'max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.6; ' +
+    (role === 'user'
+      ? 'background: rgba(200,169,110,0.12); border: 1px solid rgba(200,169,110,0.2); color: var(--white); border-top-right-radius: 4px;'
+      : 'background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--white); border-top-left-radius: 4px;');
+  bubble.innerHTML = html;
+
+  wrap.appendChild(avatar);
+  wrap.appendChild(bubble);
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+  return bubble;
+}
+
+async function sendUpdateMessage() {
+  var input = document.getElementById('update-chat-input');
+  var btn = document.getElementById('update-send-btn');
+  var msg = input.value.trim();
+  if (!msg) return;
+
+  var apiKey = localStorage.getItem('hom_api_key');
+  var ghToken = localStorage.getItem('github_token');
+
+  if (!apiKey) {
+    showToast('Configura la API Key in Impostazioni', 'error');
+    showView('impostazioni');
+    return;
+  }
+  if (!ghToken) {
+    showToast('Inserisci prima il GitHub Token', 'error');
+    return;
+  }
+
+  input.value = '';
+  input.style.height = '48px';
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+  appendUpdateMessage('user', msg);
+  updateChatHistory.push({ role: 'user', content: msg });
+
+  // Bubble risposta con loading
+  var replyBubble = appendUpdateMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>');
+
+  try {
+    // 1. Scarica il codice attuale da GitHub
+    var fileRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      headers: { 'Authorization': 'token ' + ghToken, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!fileRes.ok) throw new Error('Errore lettura file GitHub — controlla il token');
+    var fileData = await fileRes.json();
+    var currentCode = atob(fileData.content.replace(/\n/g, ''));
+    var sha = fileData.sha;
+
+    // 2. Chiama Claude con il codice
+    var systemMsg = 'Sei un developer esperto. Ti viene fornito il codice HTML completo di una web app.\n' +
+      'Il tuo compito è applicare le modifiche richieste dall\'utente e restituire il CODICE HTML COMPLETO AGGIORNATO.\n' +
+      'IMPORTANTE:\n' +
+      '- Restituisci SOLO il codice HTML completo, nient\'altro\n' +
+      '- Non aggiungere spiegazioni, markdown, o backtick\n' +
+      '- Inizia direttamente con <!DOCTYPE html>\n' +
+      '- Mantieni tutto il codice esistente, modifica solo ciò che viene richiesto\n\n' +
+      'CODICE ATTUALE:\n' + currentCode;
+
+    var messages = updateChatHistory.slice();
+
+    var claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        system: systemMsg,
+        messages: messages
+      })
+    });
+
+    if (!claudeRes.ok) {
+      var err = await claudeRes.json();
+      throw new Error('Errore Claude: ' + (err.error && err.error.message ? err.error.message : claudeRes.status));
+    }
+
+    var claudeData = await claudeRes.json();
+    var newCode = claudeData.content[0].text.trim();
+
+    // Pulizia sicura nel caso Claude aggiunga backtick
+    if (newCode.startsWith('```')) {
+      newCode = newCode.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '').trim();
+    }
+
+    if (!newCode.includes('<!DOCTYPE html>')) {
+      throw new Error('Claude non ha restituito HTML valido — riprova con istruzioni più precise');
+    }
+
+    // 3. Pubblica su GitHub
+    var encoded = btoa(unescape(encodeURIComponent(newCode)));
+    var pushRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'token ' + ghToken,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: 'Update: ' + msg.substring(0, 60),
+        content: encoded,
+        sha: sha
+      })
+    });
+
+    if (!pushRes.ok) throw new Error('Errore pubblicazione su GitHub');
+
+    updateChatHistory.push({ role: 'assistant', content: '✅ Modifiche applicate e pubblicate su GitHub.' });
+
+    replyBubble.innerHTML =
+      '<div style="color: var(--green); font-weight: 600; margin-bottom: 8px;">✅ Fatto! Modifiche pubblicate su GitHub.</div>' +
+      '<div style="font-size: 12px; color: var(--gray-light);">La pagina si aggiornerà tra circa 30 secondi.<br>' +
+      '<span style="color: var(--gold); cursor: pointer; text-decoration: underline;" onclick="location.reload()">Ricarica ora →</span></div>';
+
+    showToast('✅ App aggiornata!', 'success');
+
+  } catch(e) {
+    updateChatHistory.push({ role: 'assistant', content: 'Errore: ' + e.message });
+    replyBubble.innerHTML = '<div style="color: var(--red);">❌ ' + e.message + '</div>';
+    showToast('Errore aggiornamento', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '↑';
+}
+
 // ===== START =====
 init();
 window.showView = showView;
@@ -1865,6 +2072,8 @@ window.updateApp = updateApp;
 window.generateCalendarPlan = generateCalendarPlan;
 window.approveAIPlan = approveAIPlan;
 window.saveGithubToken = saveGithubToken;
+window.sendUpdateMessage = sendUpdateMessage;
+window.initUpdateView = initUpdateView;
 </script>
 </body>
 </html>
