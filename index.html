@@ -955,6 +955,7 @@
         <div class="page-sub">Aggiungi informazioni per migliorare la qualità dei post</div>
       </div>
       <button class="btn btn-primary" onclick="saveKnowledge()">Salva</button>
+      <button class="btn btn-outline" onclick="exportKnowledge()" style="margin-left: 8px;">⬇️ Esporta KB</button>
     </div>
 
     <div class="kb-section">
@@ -1697,7 +1698,28 @@ function saveKnowledge() {
   };
   localStorage.setItem('hom_knowledge', JSON.stringify(knowledge));
   saveToFirebase('knowledge', knowledge);
-  showToast('✓ Knowledge Base salvata e sincronizzata!', 'success');
+  // Svuota tutti i campi dopo il salvataggio
+  var fields = ['desc','values','audience','af','fluid','peroni','other','news','milestones','hashtags'];
+  fields.forEach(function(f) {
+    var el = document.getElementById('kb-' + f);
+    if (el) el.value = '';
+  });
+  showToast('✓ Knowledge Base salvata! Usa Esporta per scaricarla.', 'success');
+}
+
+function exportKnowledge() {
+  var kb = localStorage.getItem('hom_knowledge');
+  if (!kb) { showToast('Nessuna Knowledge Base salvata', 'error'); return; }
+  var blob = new Blob([JSON.stringify(JSON.parse(kb), null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'hom-knowledge-base-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Knowledge Base esportata!', 'success');
 }
 
 function loadKnowledge() {
@@ -2207,6 +2229,7 @@ window.filterPosts = filterPosts;
 window.changeMonth = changeMonth;
 window.showDayPosts = showDayPosts;
 window.saveKnowledge = saveKnowledge;
+window.exportKnowledge = exportKnowledge;
 window.saveApiKey = saveApiKey;
 window.testApiKey = testApiKey;
 window.updatePreview = updatePreview;
