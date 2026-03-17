@@ -746,6 +746,14 @@
     <span class="nav-icon">◌</span>
     <span>Impostazioni</span>
   </div>
+  <div class="nav-item" onclick="showView('knowledge')">
+    <span class="nav-icon">◉</span>
+    <span>Knowledge Base</span>
+  </div>
+  <div class="nav-item" onclick="showView('aggiorna')">
+    <span class="nav-icon">⚡</span>
+    <span>Aggiorna App</span>
+  </div>
 
   <div class="sidebar-bottom">
     <div class="api-status">
@@ -1009,24 +1017,8 @@
     <div class="page-header">
       <div>
         <div class="page-title">Impostazioni</div>
-        <div class="page-sub">Configura le API e le preferenze</div>
+        <div class="page-sub">Configura le API e i collegamenti tecnici</div>
       </div>
-    </div>
-
-
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div>
-          <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; color: var(--gold);">◉ Knowledge Base</div>
-          <div style="font-size: 13px; color: var(--gray-light); margin-top: 4px;">Gestisci le informazioni su HOM per migliorare i post</div>
-        </div>
-        <span style="color: var(--gold); font-size: 20px;">→</span>
-      </div>
-    </div>
-
-    <div class="card" style="margin-bottom: 20px; background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
-      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">⚡ Aggiorna App</div>
-      <div style="font-size: 13px; color: var(--gray-light); margin-bottom: 16px;">Apri la pagina di aggiornamento per modificare l'app tramite Claude.</div>
-      <a href="/hom-linkedin/update.html" style="display: block; text-align: center; background: var(--gold); color: var(--black); padding: 14px; border-radius: 8px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; text-decoration: none;">⚡ Apri Aggiorna App</a>
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
@@ -1043,6 +1035,25 @@
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
+      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 20px; color: var(--gold);">LinkedIn API</div>
+      <div style="font-size: 13px; color: var(--gray-light); line-height: 1.6; margin-bottom: 16px;">
+        Per la pubblicazione automatica su LinkedIn serve configurare le API OAuth.
+        Segui la guida su <span style="color: var(--gold);">developer.linkedin.com</span> per ottenere Client ID e Secret.
+      </div>
+      <div class="kb-field">
+        <label>LinkedIn Client ID</label>
+        <input type="text" id="li-client-id" placeholder="86xxxxxx">
+      </div>
+      <div class="kb-field">
+        <label>LinkedIn Client Secret</label>
+        <input type="password" id="li-client-secret" placeholder="xxxxxxxx">
+      </div>
+      <button class="btn btn-outline" onclick="showToast('Guida LinkedIn API in arrivo — da collegare con N8N', 'success')">
+        Collega tramite N8N →
+      </button>
+    </div>
+
+    <div class="card">
       <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 20px; color: var(--gold);">Frequenza pubblicazione</div>
       <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
         <div class="kb-field" style="text-align: center;" id="day-lun">
@@ -1079,24 +1090,33 @@
         <input type="time" id="post-time" value="09:00" style="max-width: 150px;">
       </div>
     </div>
+  </div>
+
+  <!-- AGGIORNA APP -->
+  <div class="view" id="view-aggiorna">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Aggiorna App</div>
+        <div class="page-sub">Modifica l'app tramite Claude e pubblica su GitHub</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px; background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
+      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">⚡ Chat con Claude</div>
+      <div style="font-size: 13px; color: var(--gray-light); margin-bottom: 16px;">Apri la pagina di aggiornamento per modificare l'app tramite Claude. Funziona su Chrome — usa update.html per istruzioni dirette.</div>
+      <a href="/hom-linkedin/update.html" style="display: block; text-align: center; background: var(--gold); color: var(--black); padding: 14px; border-radius: 8px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; text-decoration: none; margin-bottom: 12px;">⚡ Apri Chat Aggiornamento</a>
+      <button class="btn btn-outline" onclick="showView('knowledge')" style="width: 100%; justify-content: center; padding: 14px;">◉ Aggiorna Knowledge Base →</button>
+    </div>
 
     <div class="card">
-      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">LinkedIn API</div>
-      <div style="font-size: 13px; color: var(--gray-light); line-height: 1.6; margin-bottom: 16px;">
-        Per la pubblicazione automatica su LinkedIn serve configurare le API OAuth. 
-        Segui la guida su <span style="color: var(--gold);">developer.linkedin.com</span> per ottenere Client ID e Secret.
+      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">GitHub Token</div>
+      <div style="font-size: 13px; color: var(--gray-light); margin-bottom: 16px;">Il token serve per pubblicare le modifiche direttamente sul repository.</div>
+      <div class="api-input-wrap">
+        <input type="password" id="github-token-input" placeholder="ghp_...">
+        <button class="btn btn-outline" onclick="saveGithubToken()">Salva</button>
       </div>
-      <div class="kb-field">
-        <label>LinkedIn Client ID</label>
-        <input type="text" id="li-client-id" placeholder="86xxxxxx">
-      </div>
-      <div class="kb-field">
-        <label>LinkedIn Client Secret</label>
-        <input type="password" id="li-client-secret" placeholder="xxxxxxxx">
-      </div>
-      <button class="btn btn-outline" onclick="showToast('Guida LinkedIn API in arrivo — da collegare con N8N', 'success')">
-        Collega tramite N8N →
-      </button>
+      <div style="font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace; margin-top: 4px;">Permesso "repo" richiesto — salvato solo nel browser locale</div>
+      <div id="github-token-status" style="font-size: 12px; color: var(--green); margin-top: 8px; font-family: 'DM Mono', monospace;"></div>
     </div>
   </div>
 
@@ -1145,33 +1165,25 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<script type="module">
+<script>
 // ===== FIREBASE =====
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCYU0IVxNt6LYB9U8aIhRzEG-ps8Z3mx7A",
-  authDomain: "hom-linkedin.firebaseapp.com",
-  projectId: "hom-linkedin",
-  storageBucket: "hom-linkedin.firebasestorage.app",
-  messagingSenderId: "280456987425",
-  appId: "1:280456987425:web:dc9c386dc9463681983460"
-};
-
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
+// Firebase già inizializzato con SDK compat in testa al documento
+// window.db è disponibile globalmente
 
 async function saveToFirebase(key, data) {
   try {
-    await setDoc(doc(db, "hom", key), { data: JSON.stringify(data) });
+    var db = window.db;
+    if (!db) return;
+    await db.collection("hom").doc(key).set({ data: JSON.stringify(data) });
   } catch(e) { console.error("Firebase save error:", e); }
 }
 
 async function loadFromFirebase(key) {
   try {
-    const snap = await getDoc(doc(db, "hom", key));
-    if (snap.exists()) return JSON.parse(snap.data().data);
+    var db = window.db;
+    if (!db) return null;
+    var snap = await db.collection("hom").doc(key).get();
+    if (snap.exists) return JSON.parse(snap.data().data);
   } catch(e) { console.error("Firebase load error:", e); }
   return null;
 }
@@ -1760,7 +1772,8 @@ Rispondi in JSON con questo formato:
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
@@ -1817,6 +1830,17 @@ function approveAIPlan(index) {
   renderCalendar();
 }
 
+// ===== GITHUB TOKEN =====
+function saveGithubToken() {
+  var token = document.getElementById('github-token-input').value.trim();
+  if (token) {
+    localStorage.setItem('github_token', token);
+    var status = document.getElementById('github-token-status');
+    if (status) status.textContent = '✓ Token salvato';
+    showToast('GitHub Token salvato', 'success');
+  }
+}
+
 // ===== START =====
 init();
 window.showView = showView;
@@ -1840,7 +1864,7 @@ window.updateModalPreview = updateModalPreview;
 window.updateApp = updateApp;
 window.generateCalendarPlan = generateCalendarPlan;
 window.approveAIPlan = approveAIPlan;
+window.saveGithubToken = saveGithubToken;
 </script>
-<script>
 </body>
 </html>
