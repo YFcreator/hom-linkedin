@@ -717,38 +717,42 @@
     <svg width="140" height="52" viewBox="0 0 140 52" fill="none" xmlns="http://www.w3.org/2000/svg">
       <polygon points="20,4 36,14 20,24 4,14" fill="#c8a96e"/>
       <ellipse cx="20" cy="14" rx="5" ry="3" fill="#0a0a0a"/>
-      <text x="44" y="20" font-family="Syne, sans-serif" font-weight="800" font-size="20" letter-spacing="5" fill="#ffffff">HOM</text>
+      <text x="44" y="20" font-family="Syne, sans-serif" font-weight="800" font-size="20" letter-spacing="5" fill="#ff3333">HOM</text>
       <text x="44" y="36" font-family="DM Mono, monospace" font-weight="300" font-size="9" letter-spacing="2" fill="#6b6560">LINKEDIN MANAGER</text>
     </svg>
   </div>
 
   <span class="nav-section">Contenuti</span>
   <div class="nav-item active" onclick="showView('dashboard')">
-    <span class="nav-icon">◈</span>
+    <span class="nav-icon">🏠</span>
     <span>Dashboard</span>
     <span class="nav-badge" id="pending-badge">0</span>
   </div>
   <div class="nav-item" onclick="showView('genera')">
-    <span class="nav-icon">✦</span>
+    <span class="nav-icon">✍️</span>
     <span>Genera Post</span>
   </div>
   <div class="nav-item" onclick="showView('calendario')">
-    <span class="nav-icon">▦</span>
+    <span class="nav-icon">📅</span>
     <span>Calendario</span>
   </div>
   <div class="nav-item" onclick="showView('storico')">
-    <span class="nav-icon">◎</span>
+    <span class="nav-icon">📋</span>
     <span>Storico</span>
   </div>
 
   <span class="nav-section">Configurazione</span>
   <div class="nav-item" onclick="showView('impostazioni')">
-    <span class="nav-icon">◌</span>
+    <span class="nav-icon">⚙️</span>
     <span>Impostazioni</span>
   </div>
   <div class="nav-item" onclick="showView('knowledge')">
-    <span class="nav-icon">◉</span>
+    <span class="nav-icon">📚</span>
     <span>Knowledge Base</span>
+  </div>
+  <div class="nav-item" onclick="showView('profilo')">
+    <span class="nav-icon">👤</span>
+    <span>Profilo LinkedIn</span>
   </div>
   <div class="nav-item" onclick="showView('aggiorna')">
     <span class="nav-icon">⚡</span>
@@ -1012,6 +1016,44 @@
     </div>
   </div>
 
+  <!-- PROFILO LINKEDIN -->
+  <div class="view" id="view-profilo">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Profilo LinkedIn</div>
+        <div class="page-sub">Genera testi ottimizzati per il profilo HOM usando la Knowledge Base</div>
+      </div>
+      <button class="btn btn-primary" onclick="generateProfile()" id="gen-profile-btn">👤 Genera con AI</button>
+    </div>
+
+    <div id="profile-result" style="display:none;">
+
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; color: var(--gold); margin-bottom: 12px;">📌 Titolo Professionale</div>
+        <div id="profile-headline" style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: var(--white); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 10px;"></div>
+        <button class="btn btn-outline" onclick="copyText('profile-headline')" style="font-size: 12px; padding: 6px 14px;">📋 Copia</button>
+      </div>
+
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; color: var(--gold); margin-bottom: 12px;">📝 About / Sommario <span style="font-size: 12px; color: var(--gray); font-weight: 400;" id="about-chars"></span></div>
+        <div id="profile-about" style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: var(--white); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 10px;"></div>
+        <button class="btn btn-outline" onclick="copyText('profile-about')" style="font-size: 12px; padding: 6px 14px;">📋 Copia</button>
+      </div>
+
+      <div class="card">
+        <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; color: var(--gold); margin-bottom: 12px;">⭐ Spunti In Evidenza</div>
+        <div id="profile-featured" style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: var(--white); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 10px;"></div>
+        <button class="btn btn-outline" onclick="copyText('profile-featured')" style="font-size: 12px; padding: 6px 14px;">📋 Copia</button>
+      </div>
+
+    </div>
+
+    <div id="profile-loading" style="display:none; text-align: center; padding: 60px 20px;">
+      <div class="loading-dots" style="justify-content: center; margin-bottom: 16px;"><span></span><span></span><span></span></div>
+      <div style="font-size: 13px; color: var(--gray);">Claude sta generando il profilo ottimizzato...</div>
+    </div>
+  </div>
+
   <!-- IMPOSTAZIONI -->
   <div class="view" id="view-impostazioni">
     <div class="page-header">
@@ -1200,6 +1242,16 @@
 // ===== FIREBASE =====
 // Firebase già inizializzato con SDK compat in testa al documento
 // window.db è disponibile globalmente
+
+// =================================================================
+// ⚠️ REGOLA FONDAMENTALE PER CLAUDE — NON MODIFICARE QUESTO BLOCCO
+// MAI usare newline letterali dentro stringhe JavaScript con apici ' o "
+// USA SEMPRE la sequenza \n per i newline nelle stringhe JS
+// Esempio SBAGLIATO:  var x = 'riga1
+// riga2';
+// Esempio CORRETTO:   var x = 'riga1\nriga2';
+// Questo vale per TUTTE le stringhe JS nel file, specialmente i prompt.
+// =================================================================
 
 async function saveToFirebase(key, data) {
   try {
@@ -2042,6 +2094,104 @@ async function sendUpdateMessage() {
   btn.innerHTML = '↑';
 }
 
+// ===== PROFILO LINKEDIN =====
+async function generateProfile() {
+  var btn = document.getElementById('gen-profile-btn');
+  var result = document.getElementById('profile-result');
+  var loading = document.getElementById('profile-loading');
+  var apiKey = localStorage.getItem('hom_api_key');
+
+  if (!apiKey) {
+    showToast('Configura prima la API Key in Impostazioni', 'error');
+    showView('impostazioni');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Generando...';
+  result.style.display = 'none';
+  loading.style.display = 'block';
+
+  var kb = localStorage.getItem('hom_knowledge') ? JSON.parse(localStorage.getItem('hom_knowledge')) : {};
+
+  var prompt = 'Sei un esperto di personal branding LinkedIn per aziende musicali.\n\n' +
+    'Genera i testi ottimizzati per il profilo LinkedIn di House of Music (HOM).\n\n' +
+    'DATI AZIENDA:\n' +
+    'Nome: House of Music (HOM)\n' +
+    'Descrizione: ' + (kb.desc || 'Primo ecosistema musicale indipendente italiano, federazione di etichette indipendenti con sede a Milano.') + '\n' +
+    'Valori: ' + (kb.values || 'Indipendenza come vantaggio competitivo, song-driven model, there is room for everyone.') + '\n' +
+    'Target: ' + (kb.audience || 'Investitori musicali, artisti indie, manager, addetti ai lavori.') + '\n' +
+    'Etichette: Asian Fake, FLUIDOSTUDIO, Peroni Dischi, Stolen Goods, Revolutional, GenUs\n' +
+    'News: ' + (kb.news || '') + '\n\n' +
+    'Genera in italiano:\n\n' +
+    '1. TITOLO (max 220 caratteri): headline professionale accattivante\n\n' +
+    '2. ABOUT (max 2600 caratteri): sommario completo che racconta la visione, il modello, le etichette e i valori. Inizia con una frase hook forte.\n\n' +
+    '3. IN EVIDENZA (3 spunti): idee per i 3 contenuti da mettere in evidenza nel profilo (articoli, post, link)\n\n' +
+    'Formato risposta:\n' +
+    'TITOLO:\n[testo]\n\nABOUT:\n[testo]\n\nIN EVIDENZA:\n[testo]';
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    var data = await res.json();
+    var text = data.content[0].text;
+
+    var headlineMatch = text.match(/TITOLO:\n([\s\S]*?)(?=\n\nABOUT:)/);
+    var aboutMatch = text.match(/ABOUT:\n([\s\S]*?)(?=\n\nIN EVIDENZA:)/);
+    var featuredMatch = text.match(/IN EVIDENZA:\n([\s\S]*?)$/);
+
+    var headline = headlineMatch ? headlineMatch[1].trim() : '';
+    var about = aboutMatch ? aboutMatch[1].trim() : '';
+    var featured = featuredMatch ? featuredMatch[1].trim() : '';
+
+    document.getElementById('profile-headline').textContent = headline;
+    document.getElementById('profile-about').textContent = about;
+    document.getElementById('profile-featured').textContent = featured;
+    document.getElementById('about-chars').textContent = about.length + ' / 2600 caratteri';
+
+    loading.style.display = 'none';
+    result.style.display = 'block';
+    showToast('Profilo generato!', 'success');
+
+  } catch(e) {
+    loading.style.display = 'none';
+    showToast('Errore generazione profilo', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '👤 Genera con AI';
+}
+
+function copyText(elementId) {
+  var el = document.getElementById(elementId);
+  if (!el) return;
+  var text = el.textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    showToast('Copiato negli appunti!', 'success');
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Copiato!', 'success');
+  });
+}
+
 // ===== START =====
 window.showView = showView;
 window.generatePost = generatePost;
@@ -2067,6 +2217,8 @@ window.approveAIPlan = approveAIPlan;
 window.saveGithubToken = saveGithubToken;
 window.sendUpdateMessage = sendUpdateMessage;
 window.initUpdateView = initUpdateView;
+window.generateProfile = generateProfile;
+window.copyText = copyText;
 init();
 </script>
 </body>
