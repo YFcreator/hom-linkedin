@@ -2034,7 +2034,7 @@ async function sendUpdateMessage() {
     replyBubble.innerHTML =
       '<div style="color: var(--green); font-weight: 600; margin-bottom: 8px;">✅ Fatto! Modifiche pubblicate su GitHub.</div>' +
       '<div style="font-size: 12px; color: var(--gray-light);">La pagina si aggiornerà tra circa 30 secondi.<br>' +
-      '<span style="color: var(--gold); cursor: pointer; text-decoration: underline;" onclick="location.reload()">Ricarica ora →</span></div>';
+      '<a href="https://yfcreator.github.io/hom-linkedin" target="_blank" style="color: var(--gold); text-decoration: underline;">Apri app aggiornata →</a></div>';
 
     showToast('✅ App aggiornata!', 'success');
 
@@ -2049,7 +2049,6 @@ async function sendUpdateMessage() {
 }
 
 // ===== START =====
-init();
 window.showView = showView;
 window.generatePost = generatePost;
 window.approveGenerated = approveGenerated;
@@ -2074,6 +2073,7 @@ window.approveAIPlan = approveAIPlan;
 window.saveGithubToken = saveGithubToken;
 window.sendUpdateMessage = sendUpdateMessage;
 window.initUpdateView = initUpdateView;
+init();
 </script>
 </body>
 </html>
