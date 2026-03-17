@@ -1261,11 +1261,10 @@
 
 // =================================================================
 // ⚠️ REGOLA FONDAMENTALE PER CLAUDE — NON MODIFICARE QUESTO BLOCCO
-// MAI usare newline letterali dentro stringhe JavaScript con apici ' o "
-// USA SEMPRE la sequenza \n per i newline nelle stringhe JS
-// Esempio SBAGLIATO:  var x = 'riga1
-// riga2';
-// Esempio CORRETTO:   var x = 'riga1\nriga2';
+// MAI usare newline letterali dentro stringhe JS con apici ' o "
+// USA SEMPRE \n per i newline nelle stringhe JS
+// CORRETTO: var x = 'riga1\nriga2';
+// SBAGLIATO: var x = 'riga1' + newline + 'riga2'; (newline letterale)
 // Questo vale per TUTTE le stringhe JS nel file, specialmente i prompt.
 // =================================================================
 
