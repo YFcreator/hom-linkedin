@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HOM â LinkedIn Manager</title>
+<title>HOM — LinkedIn Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -717,41 +717,41 @@
     <svg width="140" height="52" viewBox="0 0 140 52" fill="none" xmlns="http://www.w3.org/2000/svg">
       <polygon points="20,4 36,14 20,24 4,14" fill="#c8a96e"/>
       <ellipse cx="20" cy="14" rx="5" ry="3" fill="#0a0a0a"/>
-      <text x="44" y="20" font-family="Syne, sans-serif" font-weight="800" font-size="20" letter-spacing="5" fill="#c94f3a">HOM</text>
+      <text x="44" y="20" font-family="Syne, sans-serif" font-weight="800" font-size="20" letter-spacing="5" fill="#ffffff">HOM</text>
       <text x="44" y="36" font-family="DM Mono, monospace" font-weight="300" font-size="9" letter-spacing="2" fill="#6b6560">LINKEDIN MANAGER</text>
     </svg>
   </div>
 
   <span class="nav-section">Contenuti</span>
   <div class="nav-item active" onclick="showView('dashboard')">
-    <span class="nav-icon">â¡</span>
+    <span class="nav-icon">◈</span>
     <span>Dashboard</span>
     <span class="nav-badge" id="pending-badge">0</span>
   </div>
   <div class="nav-item" onclick="showView('genera')">
-    <span class="nav-icon">â¦</span>
+    <span class="nav-icon">✦</span>
     <span>Genera Post</span>
   </div>
   <div class="nav-item" onclick="showView('calendario')">
-    <span class="nav-icon">â¬</span>
+    <span class="nav-icon">▦</span>
     <span>Calendario</span>
   </div>
   <div class="nav-item" onclick="showView('storico')">
-    <span class="nav-icon">â¡</span>
+    <span class="nav-icon">◎</span>
     <span>Storico</span>
   </div>
 
   <span class="nav-section">Configurazione</span>
   <div class="nav-item" onclick="showView('impostazioni')">
-    <span class="nav-icon">â </span>
+    <span class="nav-icon">◌</span>
     <span>Impostazioni</span>
   </div>
   <div class="nav-item" onclick="showView('knowledge')">
-    <span class="nav-icon">â</span>
+    <span class="nav-icon">◉</span>
     <span>Knowledge Base</span>
   </div>
   <div class="nav-item" onclick="showView('aggiorna')">
-    <span class="nav-icon">â¡</span>
+    <span class="nav-icon">⚡</span>
     <span>Aggiorna App</span>
   </div>
 
@@ -773,7 +773,7 @@
         <div class="page-title">Dashboard</div>
         <div class="page-sub">Gestisci i tuoi post LinkedIn per House of Music</div>
       </div>
-      <button class="btn btn-primary" onclick="showView('genera')">â¦ Genera Post</button>
+      <button class="btn btn-primary" onclick="showView('genera')">✦ Genera Post</button>
     </div>
 
     <div class="stats-row">
@@ -821,5 +821,1253 @@
         <div class="kb-field">
           <label>Tipo di contenuto</label>
           <select id="gen-topic">
-            <option value="">â¬ Automatico â¬</option>
-            <option value="Pensiero sul futuro della musica indipendente
+            <option value="">— Automatico —</option>
+            <option value="Pensiero sul futuro della musica indipendente">Pensiero sull'industria</option>
+            <option value="Presentazione di un'etichetta o artista delle Rooms">Presentazione etichetta/artista</option>
+            <option value="Behind the scenes — come lavora HOM">Behind the scenes HOM</option>
+            <option value="Riflessione sul modello ecosistema vs major">Business model / ecosistema</option>
+            <option value="Cultura e valori — indipendenza e libertà artistica">Cultura e valori</option>
+            <option value="Tecnologia e dati — Midly e data-driven music">Tech & Dati</option>
+            <option value="Annuncio uscita discografica o progetto">Uscita discografica</option>
+          </select>
+        </div>
+        <div class="kb-field">
+          <label>Tono</label>
+          <select id="gen-tone">
+            <option value="visionario e culturale">Visionario</option>
+            <option value="diretto e professionale">Diretto</option>
+            <option value="narrativo e coinvolgente">Narrativo</option>
+            <option value="provocatorio e di rottura">Provocatorio</option>
+          </select>
+        </div>
+        <div class="kb-field">
+          <label>Etichetta focus</label>
+          <select id="gen-label">
+            <option value="">Tutte (HOM generale)</option>
+            <option value="Asian Fake">Asian Fake</option>
+            <option value="FLUIDOSTUDIO">FLUIDOSTUDIO</option>
+            <option value="Peroni Dischi">Peroni Dischi</option>
+            <option value="Stolen Goods">Stolen Goods</option>
+            <option value="Revolutional">Revolutional</option>
+            <option value="GenUs">GenUs</option>
+          </select>
+        </div>
+      </div>
+      <div class="kb-field">
+        <label>Note aggiuntive (opzionale)</label>
+        <textarea id="gen-notes" placeholder="Es: menziona l'apertura del nuovo store, parla della collaborazione con X, focus sulla distribuzione internazionale..." style="min-height: 60px;"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="generatePost()" id="gen-btn" style="width: 100%; justify-content: center; padding: 14px;">
+        ✦ Genera Post con AI
+      </button>
+    </div>
+
+    <div id="gen-result" style="display: none;">
+      <div style="margin-bottom: 16px; font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">Risultato — modifica e approva</div>
+      <div class="editor-layout">
+        <div>
+          <textarea class="post-editor" id="gen-editor" oninput="updatePreview()"></textarea>
+          <div class="char-count" id="gen-char">0 / 1300</div>
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="btn btn-success" onclick="approveGenerated()" style="flex: 1; justify-content: center;">✓ Approva e Salva</button>
+            <button class="btn btn-outline" onclick="generatePost()">↻ Rigenera</button>
+            <button class="btn btn-ghost" onclick="saveAsDraft()">Salva Bozza</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--gray); margin-bottom: 12px; text-transform: uppercase;">Anteprima LinkedIn</div>
+          <div class="linkedin-preview">
+            <div class="li-header">
+              <div class="li-avatar">H</div>
+              <div>
+                <div class="li-name">House of Music</div>
+                <div class="li-sub">Independent Music Ecosystem · Milano</div>
+              </div>
+            </div>
+            <div class="li-body" id="gen-preview">Il tuo post apparirà qui...</div>
+            <div class="li-footer">
+              <span class="li-action">👍 Mi piace</span>
+              <span class="li-action">💬 Commenta</span>
+              <span class="li-action">↗ Condividi</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALENDARIO -->
+  <div class="view" id="view-calendario">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Calendario</div>
+        <div class="page-sub">Pianifica i tuoi post con AI</div>
+      </div>
+      <button class="btn btn-primary" onclick="generateCalendarPlan()" id="gen-plan-btn">✦ Genera Piano AI</button>
+    </div>
+
+    <div id="ai-plan-section" style="display:none; margin-bottom: 24px;">
+      <div class="card" style="background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
+        <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; color: var(--gold); margin-bottom: 12px;">✦ Piano AI del Mese</div>
+        <div id="ai-plan-list"></div>
+        <div id="ai-plan-status" style="font-size: 12px; color: var(--gray); font-family: 'DM Mono', monospace; margin-top: 8px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <button class="btn btn-ghost" onclick="changeMonth(-1)">← Prev</button>
+        <div style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px;" id="cal-title"></div>
+        <button class="btn btn-ghost" onclick="changeMonth(1)">Next →</button>
+      </div>
+      <div class="calendar-grid" id="cal-headers"></div>
+      <div class="calendar-grid" id="cal-grid"></div>
+    </div>
+    <div id="cal-day-posts" style="margin-top: 24px;"></div>
+  </div>
+
+  <!-- STORICO -->
+  <div class="view" id="view-storico">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Storico</div>
+        <div class="page-sub">Tutti i post pubblicati e le bozze</div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+      <button class="btn btn-outline" onclick="filterPosts('all')" id="filter-all" style="border-color: var(--gold); color: var(--gold);">Tutti</button>
+      <button class="btn btn-outline" onclick="filterPosts('published')" id="filter-published">Pubblicati</button>
+      <button class="btn btn-outline" onclick="filterPosts('pending')" id="filter-pending">In attesa</button>
+      <button class="btn btn-outline" onclick="filterPosts('draft')" id="filter-draft">Bozze</button>
+    </div>
+    <div id="storico-list"></div>
+  </div>
+
+  <!-- KNOWLEDGE BASE -->
+  <div class="view" id="view-knowledge">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Knowledge Base</div>
+        <div class="page-sub">Aggiungi informazioni per migliorare la qualità dei post</div>
+      </div>
+      <button class="btn btn-primary" onclick="saveKnowledge()">Salva</button>
+    </div>
+
+    <div class="kb-section">
+      <div class="kb-section-title">◈ Identità HOM</div>
+      <div class="card">
+        <div class="kb-field">
+          <label>Descrizione dell'azienda</label>
+          <textarea id="kb-desc" placeholder="Descrivi HOM in modo approfondito..."></textarea>
+        </div>
+        <div class="kb-field">
+          <label>Valori e filosofia</label>
+          <textarea id="kb-values" placeholder="Es: indipendenza come vantaggio competitivo, song-driven model..."></textarea>
+        </div>
+        <div class="kb-field">
+          <label>Target audience LinkedIn</label>
+          <textarea id="kb-audience" placeholder="Es: investitori del settore musicale, artisti indie, addetti ai lavori, manager..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="kb-section">
+      <div class="kb-section-title">◉ Etichette e Artisti</div>
+      <div class="card">
+        <div class="kb-field">
+          <label>Asian Fake</label>
+          <textarea id="kb-af" placeholder="Descrivi Asian Fake, generi, artisti principali, successi recenti..."></textarea>
+        </div>
+        <div class="kb-field">
+          <label>FLUIDOSTUDIO</label>
+          <textarea id="kb-fluid" placeholder="Descrivi FLUIDOSTUDIO..."></textarea>
+        </div>
+        <div class="kb-field">
+          <label>Peroni Dischi</label>
+          <textarea id="kb-peroni" placeholder="Descrivi Peroni Dischi..."></textarea>
+        </div>
+        <div class="kb-field">
+          <label>Stolen Goods / Revolutional / GenUs</label>
+          <textarea id="kb-other" placeholder="Descrivi le altre etichette..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="kb-section">
+      <div class="kb-section-title">✦ News e Aggiornamenti</div>
+      <div class="card">
+        <div class="kb-field">
+          <label>Uscite recenti e progetti in corso</label>
+          <textarea id="kb-news" placeholder="Es: nuovo album di X uscito il..., apertura nuovo store, partnership con..., tour di..."></textarea>
+        </div>
+        <div class="kb-field">
+          <label>Milestone e traguardi</label>
+          <textarea id="kb-milestones" placeholder="Es: raggiunta distribuzione in X paesi, 10 milioni di stream, nuovo investimento..."></textarea>
+        </div>
+        <div class="kb-field">
+          <label>Hashtag preferiti</label>
+          <input type="text" id="kb-hashtags" placeholder="#MusicaIndipendente #HouseOfMusic #IndieMusic #MusicBusiness">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPOSTAZIONI -->
+  <div class="view" id="view-impostazioni">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Impostazioni</div>
+        <div class="page-sub">Configura le API e i collegamenti tecnici</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 20px; color: var(--gold);">API Anthropic (Claude)</div>
+      <div class="kb-field">
+        <label>API Key</label>
+        <div class="api-input-wrap">
+          <input type="password" id="anthropic-key" placeholder="sk-ant-...">
+          <button class="btn btn-outline" onclick="saveApiKey()">Salva</button>
+          <button class="btn btn-ghost" onclick="testApiKey()">Test</button>
+        </div>
+        <div style="font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace;">La chiave viene salvata solo nel browser locale</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 20px; color: var(--gold);">LinkedIn API</div>
+      <div style="font-size: 13px; color: var(--gray-light); line-height: 1.6; margin-bottom: 16px;">
+        Per la pubblicazione automatica su LinkedIn serve configurare le API OAuth.
+        Segui la guida su <span style="color: var(--gold);">developer.linkedin.com</span> per ottenere Client ID e Secret.
+      </div>
+      <div class="kb-field">
+        <label>LinkedIn Client ID</label>
+        <input type="text" id="li-client-id" placeholder="86xxxxxx">
+      </div>
+      <div class="kb-field">
+        <label>LinkedIn Client Secret</label>
+        <input type="password" id="li-client-secret" placeholder="xxxxxxxx">
+      </div>
+      <button class="btn btn-outline" onclick="showToast('Guida LinkedIn API in arrivo — da collegare con N8N', 'success')">
+        Collega tramite N8N →
+      </button>
+    </div>
+
+    <div class="card">
+      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 20px; color: var(--gold);">Frequenza pubblicazione</div>
+      <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
+        <div class="kb-field" style="text-align: center;" id="day-lun">
+          <label>Lun</label>
+          <input type="checkbox" data-day="lun" style="width: auto; margin: 0 auto;">
+        </div>
+        <div class="kb-field" style="text-align: center;">
+          <label>Mar</label>
+          <input type="checkbox" data-day="mar" style="width: auto; margin: 0 auto;">
+        </div>
+        <div class="kb-field" style="text-align: center;">
+          <label>Mer</label>
+          <input type="checkbox" data-day="mer" style="width: auto; margin: 0 auto;" checked>
+        </div>
+        <div class="kb-field" style="text-align: center;">
+          <label>Gio</label>
+          <input type="checkbox" data-day="gio" style="width: auto; margin: 0 auto;">
+        </div>
+        <div class="kb-field" style="text-align: center;">
+          <label>Ven</label>
+          <input type="checkbox" data-day="ven" style="width: auto; margin: 0 auto;" checked>
+        </div>
+        <div class="kb-field" style="text-align: center;">
+          <label>Sab</label>
+          <input type="checkbox" data-day="sab" style="width: auto; margin: 0 auto;">
+        </div>
+        <div class="kb-field" style="text-align: center;">
+          <label>Dom</label>
+          <input type="checkbox" data-day="dom" style="width: auto; margin: 0 auto;">
+        </div>
+      </div>
+      <div class="kb-field" style="margin-top: 12px;">
+        <label>Orario preferito</label>
+        <input type="time" id="post-time" value="09:00" style="max-width: 150px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- AGGIORNA APP -->
+  <div class="view" id="view-aggiorna">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Aggiorna App</div>
+        <div class="page-sub">Scrivi le modifiche — Claude le applica e pubblica su GitHub</div>
+      </div>
+    </div>
+
+    <!-- TOKEN CONFIG -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+      <div class="card" style="padding: 16px;">
+        <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gray); margin-bottom: 8px;">GitHub Token</div>
+        <div class="api-input-wrap" style="margin-bottom: 0;">
+          <input type="password" id="github-token-input" placeholder="ghp_..." style="font-size: 12px;">
+          <button class="btn btn-outline" onclick="saveGithubToken()" style="white-space: nowrap;">Salva</button>
+        </div>
+        <div id="github-token-status" style="font-size: 11px; color: var(--green); margin-top: 6px; font-family: 'DM Mono', monospace;"></div>
+      </div>
+      <div class="card" style="padding: 16px;">
+        <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gray); margin-bottom: 8px;">API Anthropic</div>
+        <div style="font-size: 12px; color: var(--gray-light); display: flex; align-items: center; gap: 8px; height: 40px;">
+          <div class="api-dot" id="update-api-dot"></div>
+          <span id="update-api-status">Non configurata — vai in Impostazioni</span>
+        </div>
+        <button class="btn btn-ghost" onclick="showView('knowledge')" style="font-size: 12px; padding: 4px 8px; margin-top: 4px;">◉ Knowledge Base →</button>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="card" style="display: flex; flex-direction: column; height: 520px; padding: 0; overflow: hidden;">
+
+      <!-- messaggi -->
+      <div id="update-chat-messages" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="text-align: center; padding: 40px 20px;">
+          <div style="font-size: 32px; margin-bottom: 12px;">⚡</div>
+          <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px;">Pronto ad aggiornare l'app</div>
+          <div style="font-size: 13px; color: var(--gray); line-height: 1.6;">Descrivi le modifiche che vuoi fare.<br>Claude legge il codice, applica i cambiamenti e pubblica su GitHub.</div>
+        </div>
+      </div>
+
+      <!-- input area -->
+      <div style="border-top: 1px solid var(--border); padding: 16px; background: rgba(0,0,0,0.2);">
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+          <textarea id="update-chat-input"
+            placeholder="Es: aggiungi un bottone per duplicare i post, cambia il colore primario in blu, aggiungi un campo note nella scheda post..."
+            style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 13px; resize: none; outline: none; line-height: 1.5; min-height: 48px; max-height: 120px; transition: border-color 0.2s;"
+            onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendUpdateMessage();}"
+            oninput="this.style.height='48px';this.style.height=Math.min(this.scrollHeight,120)+'px';"
+            onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+          <button onclick="sendUpdateMessage()" id="update-send-btn"
+            style="background: var(--gold); color: var(--black); border: none; border-radius: 8px; width: 44px; height: 44px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;"
+            onmouseover="this.style.background='var(--gold-light)'" onmouseout="this.style.background='var(--gold)'">↑</button>
+        </div>
+        <div style="font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace; margin-top: 8px;">Enter per inviare · Shift+Enter per andare a capo</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL REVIEW POST -->
+<div class="modal-overlay" id="review-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Revisiona Post</div>
+      <button class="btn btn-ghost" onclick="closeModal()">✕</button>
+    </div>
+    <div class="editor-layout">
+      <div>
+        <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--gray); margin-bottom: 8px; text-transform: uppercase;">Modifica testo</div>
+        <textarea class="post-editor" id="modal-editor" oninput="updateModalPreview()"></textarea>
+        <div class="char-count" id="modal-char">0 / 1300</div>
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <button class="btn btn-success" onclick="publishPost()" style="flex: 1; justify-content: center;">✓ Approva</button>
+          <button class="btn btn-danger" onclick="deletePost()">Elimina</button>
+          <button class="btn btn-ghost" onclick="closeModal()">Annulla</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--gray); margin-bottom: 12px; text-transform: uppercase;">Anteprima LinkedIn</div>
+        <div class="linkedin-preview">
+          <div class="li-header">
+            <div class="li-avatar">H</div>
+            <div>
+              <div class="li-name">House of Music</div>
+              <div class="li-sub">Independent Music Ecosystem · Milano</div>
+            </div>
+          </div>
+          <div class="li-body" id="modal-preview"></div>
+          <div class="li-footer">
+            <span class="li-action">👍 Mi piace</span>
+            <span class="li-action">💬 Commenta</span>
+            <span class="li-action">↗ Condividi</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== FIREBASE =====
+// Firebase già inizializzato con SDK compat in testa al documento
+// window.db è disponibile globalmente
+
+async function saveToFirebase(key, data) {
+  try {
+    var db = window.db;
+    if (!db) return;
+    await db.collection("hom").doc(key).set({ data: JSON.stringify(data) });
+  } catch(e) { console.error("Firebase save error:", e); }
+}
+
+async function loadFromFirebase(key) {
+  try {
+    var db = window.db;
+    if (!db) return null;
+    var snap = await db.collection("hom").doc(key).get();
+    if (snap.exists) return JSON.parse(snap.data().data);
+  } catch(e) { console.error("Firebase load error:", e); }
+  return null;
+}
+
+// ===== STATE =====
+let posts = JSON.parse(localStorage.getItem('hom_posts') || '[]');
+let knowledge = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
+let currentEditId = null;
+let calendarDate = new Date();
+let currentFilter = 'all';
+
+// ===== INIT =====
+async function init() {
+  const fbKnowledge = await loadFromFirebase('knowledge');
+  if (fbKnowledge) {
+    knowledge = fbKnowledge;
+    localStorage.setItem('hom_knowledge', JSON.stringify(knowledge));
+  }
+  const fbPosts = await loadFromFirebase('posts');
+  if (fbPosts) {
+    posts = fbPosts;
+    localStorage.setItem('hom_posts', JSON.stringify(posts));
+  }
+  loadKnowledge();
+  checkApiKey();
+  renderDashboard();
+  renderCalendar();
+  renderStorico();
+  updateStats();
+  showToast('✓ Sincronizzato', 'success');
+}
+
+// ===== NAVIGATION =====
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(item => {
+    if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(name)) {
+      item.classList.add('active');
+    }
+  });
+  if (name === 'calendario') renderCalendar();
+  if (name === 'storico') renderStorico();
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'aggiorna') initUpdateView();
+}
+
+// ===== API KEY =====
+function saveApiKey() {
+  const key = document.getElementById('anthropic-key').value.trim();
+  if (key) {
+    localStorage.setItem('hom_api_key', key);
+    checkApiKey();
+    showToast('API Key salvata con successo', 'success');
+  }
+}
+
+function checkApiKey() {
+  const key = localStorage.getItem('hom_api_key');
+  const dot = document.getElementById('api-dot');
+  const txt = document.getElementById('api-status-text');
+  if (key && key.startsWith('sk-ant')) {
+    dot.classList.add('ok');
+    txt.textContent = 'API attiva';
+    const input = document.getElementById('anthropic-key');
+    if (input) input.value = key;
+  } else {
+    dot.classList.remove('ok');
+    txt.textContent = 'API non configurata';
+  }
+}
+
+async function testApiKey() {
+  const key = localStorage.getItem('hom_api_key');
+  if (!key) { showToast('Inserisci prima una API key', 'error'); return; }
+  showToast('Test in corso...', 'success');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      mode: 'cors',
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 10, messages: [{ role: 'user', content: 'test' }] })
+    });
+    if (res.ok) { showToast('✓ API funzionante!', 'success'); document.getElementById('api-dot').classList.add('ok'); }
+    else { showToast('Errore API — controlla la chiave', 'error'); }
+  } catch(e) { showToast('Errore di connessione', 'error'); }
+}
+
+// ===== GENERATE POST =====
+async function generatePost() {
+  const key = localStorage.getItem('hom_api_key');
+  if (!key) { showToast('Configura prima la API key in Impostazioni', 'error'); showView('impostazioni'); return; }
+
+  const btn = document.getElementById('gen-btn');
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Generazione in corso...';
+  btn.disabled = true;
+
+  const topic = document.getElementById('gen-topic').value;
+  const tone = document.getElementById('gen-tone').value;
+  const label = document.getElementById('gen-label').value;
+  const notes = document.getElementById('gen-notes').value;
+
+  const kb = knowledge;
+  const systemPrompt = buildSystemPrompt(kb);
+  const userPrompt = buildUserPrompt(topic, tone, label, notes);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'Access-Control-Allow-Origin': '*'
+      },
+      mode: 'cors',
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    const data = await res.json();
+    if (data.content && data.content[0]) {
+      const text = data.content[0].text;
+      document.getElementById('gen-editor').value = text;
+      document.getElementById('gen-preview').textContent = text;
+      document.getElementById('gen-result').style.display = 'block';
+      updateCharCount('gen-editor', 'gen-char');
+      showToast('Post generato con successo!', 'success');
+    } else {
+      showToast('Errore nella generazione — riprova', 'error');
+    }
+  } catch(e) {
+    showToast('Errore di connessione', 'error');
+  }
+
+  btn.innerHTML = '✦ Genera Post con AI';
+  btn.disabled = false;
+}
+
+function buildSystemPrompt(kb) {
+  return `Sei il social media strategist di House of Music (HOM), il primo gruppo d'avanguardia italiano che aggrega etichette indipendenti senza annullarne l'identità.
+
+IDENTITÀ DEL BRAND:
+House of Music è un ecosistema federato con sede a Milano (Viale Tunisia 39) che include le etichette: Asian Fake, FLUIDOSTUDIO, Peroni Dischi, Stolen Goods, Revolutional, GenUs. Ha anche startup/tech: Midly (data & fan relations), Studio Mob (studi di registrazione), Mare Studio (spazi creativi).
+
+FILOSOFIA:
+- "There is room for everyone" — dare spazio senza omologare
+- L'indipendenza come vantaggio competitivo, non come limite
+- La musica prima dei numeri: nessuna ansia da grafici
+- Metafora della casa: ogni etichetta è una stanza con la propria identità
+- Supporto operativo (distribuzione, legale, marketing, dati) per proteggere l'artista
+
+${kb.desc ? `DESCRIZIONE APPROFONDITA: ${kb.desc}` : ''}
+${kb.values ? `VALORI: ${kb.values}` : ''}
+${kb.audience ? `TARGET LINKEDIN: ${kb.audience}` : ''}
+${kb.af ? `ASIAN FAKE: ${kb.af}` : ''}
+${kb.fluid ? `FLUIDOSTUDIO: ${kb.fluid}` : ''}
+${kb.peroni ? `PERONI DISCHI: ${kb.peroni}` : ''}
+${kb.other ? `ALTRE ETICHETTE: ${kb.other}` : ''}
+${kb.news ? `NEWS RECENTI: ${kb.news}` : ''}
+${kb.milestones ? `MILESTONE: ${kb.milestones}` : ''}
+
+TONO DI VOCE:
+- Professionale ma non freddo, visionario e culturale
+- Diretto, senza fronzoli. Mai autoreferenziale
+- Parla sia agli investitori che agli artisti
+- Italiano, con occasionali termini inglesi del settore
+
+FORMATO:
+- Max 1300 caratteri
+- Prima riga = hook forte che ferma lo scroll
+- Corpo = 3-5 paragrafi brevi
+- Chiusura = domanda o call to action leggera
+- ${kb.hashtags || '3-5 hashtag pertinenti'} alla fine
+- Max 2-3 emoji per post
+
+Rispondi SOLO con il testo del post, niente altro.`;
+}
+
+function buildUserPrompt(topic, tone, label, notes) {
+  let prompt = `Genera un post LinkedIn per House of Music`;
+  if (topic) prompt += ` sul tema: "${topic}"`;
+  if (label) prompt += `. Focus sull'etichetta: ${label}`;
+  if (tone) prompt += `. Tono: ${tone}`;
+  if (notes) prompt += `. Note specifiche: ${notes}`;
+  prompt += `. La data di oggi è ${new Date().toLocaleDateString('it-IT', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}.`;
+  return prompt;
+}
+
+// ===== POST MANAGEMENT =====
+function approveGenerated() {
+  const text = document.getElementById('gen-editor').value.trim();
+  if (!text) { showToast('Nessun testo da approvare', 'error'); return; }
+  const post = {
+    id: Date.now(),
+    text,
+    status: 'pending',
+    created: new Date().toISOString(),
+    scheduled: null,
+    topic: document.getElementById('gen-topic').value || 'Automatico'
+  };
+  posts.unshift(post);
+  savePosts();
+  renderDashboard();
+  updateStats();
+  document.getElementById('gen-result').style.display = 'none';
+  document.getElementById('gen-editor').value = '';
+  showToast('Post salvato — in attesa di approvazione', 'success');
+  showView('dashboard');
+}
+
+function saveAsDraft() {
+  const text = document.getElementById('gen-editor').value.trim();
+  if (!text) return;
+  const post = {
+    id: Date.now(),
+    text,
+    status: 'draft',
+    created: new Date().toISOString(),
+    scheduled: null,
+    topic: document.getElementById('gen-topic').value || 'Bozza'
+  };
+  posts.unshift(post);
+  savePosts();
+  updateStats();
+  showToast('Bozza salvata', 'success');
+}
+
+function openReview(id) {
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  currentEditId = id;
+  document.getElementById('modal-editor').value = post.text;
+  document.getElementById('modal-preview').textContent = post.text;
+  updateCharCount('modal-editor', 'modal-char');
+  document.getElementById('review-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('review-modal').classList.remove('open');
+  currentEditId = null;
+}
+
+function publishPost() {
+  if (!currentEditId) return;
+  const idx = posts.findIndex(p => p.id === currentEditId);
+  if (idx === -1) return;
+  posts[idx].text = document.getElementById('modal-editor').value;
+  posts[idx].status = 'published';
+  posts[idx].publishedAt = new Date().toISOString();
+  savePosts();
+  renderDashboard();
+  renderStorico();
+  updateStats();
+  closeModal();
+  showToast('✓ Post approvato e pubblicato!', 'success');
+}
+
+function deletePost() {
+  if (!currentEditId) return;
+  posts = posts.filter(p => p.id !== currentEditId);
+  savePosts();
+  renderDashboard();
+  renderStorico();
+  updateStats();
+  closeModal();
+  showToast('Post eliminato', 'success');
+}
+
+// ===== RENDER =====
+function renderDashboard() {
+  const pending = posts.filter(p => p.status === 'pending');
+  const published = posts.filter(p => p.status === 'published').slice(0, 3);
+
+  document.getElementById('pending-list').innerHTML = pending.length
+    ? pending.map(p => renderPostCard(p)).join('')
+    : '<div style="color: var(--gray); font-size: 13px; padding: 20px 0; font-style: italic;">Nessun post in attesa — genera un nuovo post!</div>';
+
+  document.getElementById('published-list').innerHTML = published.length
+    ? published.map(p => renderPostCard(p)).join('')
+    : '<div style="color: var(--gray); font-size: 13px; padding: 20px 0; font-style: italic;">Nessun post pubblicato ancora</div>';
+
+  document.getElementById('pending-badge').textContent = pending.length;
+  document.getElementById('pending-badge').style.display = pending.length ? 'inline' : 'none';
+}
+
+function renderPostCard(post) {
+  const date = new Date(post.created).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+  const preview = post.text.substring(0, 180) + (post.text.length > 180 ? '...' : '');
+  return `
+    <div class="post-card ${post.status}">
+      <div class="post-meta">
+        <span class="post-status ${post.status}">${post.status === 'pending' ? 'In attesa' : post.status === 'published' ? 'Pubblicato' : 'Bozza'}</span>
+        <span class="post-date">${date}</span>
+        <span class="post-topic">${post.topic || ''}</span>
+      </div>
+      <div class="post-text">${preview}</div>
+      <div class="post-actions">
+        <button class="btn btn-outline" onclick="openReview(${post.id})" style="font-size: 12px; padding: 7px 14px;">Revisiona</button>
+        ${post.status === 'pending' ? `<button class="btn btn-success" onclick="quickPublish(${post.id})" style="font-size: 12px; padding: 7px 14px;">✓ Approva</button>` : ''}
+        <button class="btn btn-ghost" onclick="confirmDelete(${post.id})" style="font-size: 12px; color: var(--red);">Elimina</button>
+      </div>
+    </div>`;
+}
+
+function quickPublish(id) {
+  const idx = posts.findIndex(p => p.id === id);
+  if (idx === -1) return;
+  posts[idx].status = 'published';
+  posts[idx].publishedAt = new Date().toISOString();
+  savePosts();
+  renderDashboard();
+  renderStorico();
+  updateStats();
+  showToast('✓ Post approvato!', 'success');
+}
+
+function confirmDelete(id) {
+  if (confirm('Eliminare questo post?')) {
+    posts = posts.filter(p => p.id !== id);
+    savePosts();
+    renderDashboard();
+    renderStorico();
+    updateStats();
+    showToast('Post eliminato', 'success');
+  }
+}
+
+function updateStats() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById('stat-pending').textContent = posts.filter(p => p.status === 'pending').length;
+  document.getElementById('stat-published').textContent = posts.filter(p => p.status === 'published').length;
+  document.getElementById('stat-drafts').textContent = posts.filter(p => p.status === 'draft').length;
+  document.getElementById('stat-month').textContent = posts.filter(p => p.status === 'published' && new Date(p.publishedAt || p.created) >= monthStart).length;
+  document.getElementById('stat-pending').textContent = posts.filter(p => p.status === 'pending').length;
+}
+
+// ===== STORICO =====
+function renderStorico() {
+  const filtered = currentFilter === 'all' ? posts : posts.filter(p => p.status === currentFilter);
+  document.getElementById('storico-list').innerHTML = filtered.length
+    ? filtered.map(p => renderPostCard(p)).join('')
+    : '<div style="color: var(--gray); font-size: 13px; padding: 20px 0; font-style: italic;">Nessun post trovato</div>';
+}
+
+function filterPosts(type) {
+  currentFilter = type;
+  ['all', 'published', 'pending', 'draft'].forEach(t => {
+    const btn = document.getElementById('filter-' + t);
+    if (btn) { btn.style.borderColor = ''; btn.style.color = ''; }
+  });
+  const active = document.getElementById('filter-' + type);
+  if (active) { active.style.borderColor = 'var(--gold)'; active.style.color = 'var(--gold)'; }
+  renderStorico();
+}
+
+// ===== CALENDAR =====
+function renderCalendar() {
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const today = new Date();
+  const months = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  const days = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+
+  document.getElementById('cal-title').textContent = `${months[month]} ${year}`;
+
+  const headersEl = document.getElementById('cal-headers');
+  headersEl.innerHTML = days.map(d => `<div class="cal-header">${d}</div>`).join('');
+
+  const firstDay = new Date(year, month, 1);
+  let startDow = firstDay.getDay() - 1;
+  if (startDow < 0) startDow = 6;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrev = new Date(year, month, 0).getDate();
+
+  let html = '';
+  for (let i = startDow - 1; i >= 0; i--) {
+    html += `<div class="cal-day other-month">${daysInPrev - i}</div>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hasPost = posts.some(p => (p.publishedAt || p.created || '').startsWith(dateStr));
+    html += `<div class="cal-day ${isToday ? 'today' : ''} ${hasPost ? 'has-post' : ''}" onclick="showDayPosts('${dateStr}')">${d}</div>`;
+  }
+  const remaining = 42 - (startDow + daysInMonth);
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="cal-day other-month">${i}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+function showDayPosts(dateStr) {
+  const dayPosts = posts.filter(p => (p.publishedAt || p.created || '').startsWith(dateStr));
+  const el = document.getElementById('cal-day-posts');
+  if (!dayPosts.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray); margin-bottom: 12px;">${dateStr}</div>
+    ${dayPosts.map(p => renderPostCard(p)).join('')}`;
+}
+
+function changeMonth(dir) {
+  calendarDate.setMonth(calendarDate.getMonth() + dir);
+  renderCalendar();
+}
+
+// ===== KNOWLEDGE BASE =====
+function saveKnowledge() {
+  knowledge = {
+    desc: document.getElementById('kb-desc').value,
+    values: document.getElementById('kb-values').value,
+    audience: document.getElementById('kb-audience').value,
+    af: document.getElementById('kb-af').value,
+    fluid: document.getElementById('kb-fluid').value,
+    peroni: document.getElementById('kb-peroni').value,
+    other: document.getElementById('kb-other').value,
+    news: document.getElementById('kb-news').value,
+    milestones: document.getElementById('kb-milestones').value,
+    hashtags: document.getElementById('kb-hashtags').value,
+  };
+  localStorage.setItem('hom_knowledge', JSON.stringify(knowledge));
+  saveToFirebase('knowledge', knowledge);
+  showToast('✓ Knowledge Base salvata e sincronizzata!', 'success');
+}
+
+function loadKnowledge() {
+  var defaultKb = {
+    desc: "Nell'industria musicale contemporanea, un'etichetta discografica è prima di tutto un sistema di valori. La musica è la conseguenza più riconoscibile di un processo più complesso — sono i valori, la visione, la comunità a darle forma, direzione e ragione per durare.\n\nHOM è la casa discografica. Le label che la abitano sono espressioni di visioni, culture e comunità diverse — suoni e stili distanti tra loro, ma persone unite da valori di base comuni. È da quei valori che la musica nasce. Sempre.\n\nEssere attrattivi, oggi, significa essere identitari. Non basta produrre musica di qualità: bisogna costruire un universo di senso attorno a essa, capace di intercettare comunità reali e di parlarle con coerenza nel tempo. HOM ha una propria identità — è il sistema di valori. Le label sono le sue declinazioni culturali, ciascuna con una voce autonoma ma radicata in quella base comune.\n\nHOM nasce dall'esperienza di Asian Fake, etichetta fondata nel 2017 a Milano che negli anni ha saputo costruire uno dei cataloghi più riconoscibili e rispettati dell'indipendente italiano. Asian Fake ha dimostrato che un posizionamento culturale netto non è un limite commerciale: è la condizione per costruire carriere durature.\n\nDischi d'oro e di platino, un pubblico fedele e trasversale, una reputazione costruita sulla qualità e sulla coerenza: Asian Fake non ha prodotto solo risultati, ma un metodo. HOM è l'applicazione di quel metodo su scala più ampia — una rete di label con identità forti, capaci di crescere nei propri perimetri con la solidità di una struttura condivisa.\n\nUn modello fondato sulla convinzione che il futuro dell'industria musicale stia nella specializzazione, non nella competizione di scala. In un mercato dominato dall'algoritmo e dalla logica del volume, le label che costruiscono comunità reali attorno a sistemi di valori chiari sono quelle che resistono e crescono. HOM è la casa di chi ci crede.",
+    values: "Indipendenza come vantaggio competitivo. Song-driven model. Specializzazione, non competizione di scala. Costruire comunità reali attorno a sistemi di valori chiari.",
+    audience: "Investitori del settore musicale, artisti indie, addetti ai lavori, manager, professionisti dell'industria creativa, appassionati di cultura musicale italiana."
+  };
+  const saved = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
+  const kb = Object.assign({}, defaultKb, saved);
+  knowledge = kb;
+  if (!localStorage.getItem('hom_knowledge')) {
+    localStorage.setItem('hom_knowledge', JSON.stringify(kb));
+  }
+  const fields = ['desc','values','audience','af','fluid','peroni','other','news','milestones','hashtags'];
+  fields.forEach(function(f) {
+    const el = document.getElementById('kb-' + f);
+    if (el && kb[f]) el.value = kb[f];
+  });
+}
+
+// ===== PREVIEW & CHAR COUNT =====
+function updatePreview() {
+  const text = document.getElementById('gen-editor').value;
+  document.getElementById('gen-preview').textContent = text;
+  updateCharCount('gen-editor', 'gen-char');
+}
+
+function updateModalPreview() {
+  const text = document.getElementById('modal-editor').value;
+  document.getElementById('modal-preview').textContent = text;
+  updateCharCount('modal-editor', 'modal-char');
+}
+
+function updateCharCount(editorId, countId) {
+  const len = document.getElementById(editorId).value.length;
+  const el = document.getElementById(countId);
+  el.textContent = `${len} / 1300`;
+  el.classList.toggle('over', len > 1300);
+}
+
+// ===== STORAGE =====
+function savePosts() {
+  localStorage.setItem('hom_posts', JSON.stringify(posts));
+  saveToFirebase('posts', posts);
+}
+
+// ===== TOAST =====
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===== CLOSE MODAL ON OUTSIDE CLICK =====
+document.getElementById('review-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ===== UPDATE APP =====
+
+
+async function updateApp() {
+  const btn = document.getElementById('update-btn');
+  const status = document.getElementById('update-status');
+  const token = localStorage.getItem('github_token');
+  if (!token) {
+    status.textContent = '❌ Inserisci prima il GitHub Token nelle impostazioni';
+    showToast('Token GitHub mancante', 'error');
+    return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Aggiornamento in corso...';
+  status.textContent = 'Connessione a GitHub...';
+  try {
+    // Get current file SHA
+    const fileRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!fileRes.ok) throw new Error('Errore lettura file GitHub');
+    const fileData = await fileRes.json();
+    const sha = fileData.sha;
+
+    // Get latest content from Gist
+    status.textContent = 'Scarico aggiornamento da Gist...';
+    const gistRes = await fetch('https://gist.githubusercontent.com/YFcreator/24a834c0a6ab3a74d007903ea5bc577d/raw/index.html');
+    if (!gistRes.ok) throw new Error('Errore lettura Gist');
+    const newContent = await gistRes.text();
+    const encoded = btoa(unescape(encodeURIComponent(newContent)));
+
+    // Update file on GitHub
+    status.textContent = 'Pubblicazione su GitHub...';
+    const updateRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ message: 'Update app', content: encoded, sha: sha })
+    });
+    if (!updateRes.ok) throw new Error('Errore aggiornamento GitHub');
+    status.textContent = '✅ App aggiornata! Ricarica la pagina tra 30 secondi.';
+    showToast('✅ App aggiornata su GitHub!', 'success');
+  } catch(e) {
+    status.textContent = '❌ Errore: ' + e.message;
+    showToast('Errore aggiornamento', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '⚡ Aggiorna App da GitHub';
+}
+
+
+// ===== CALENDAR AI PLAN =====
+async function generateCalendarPlan() {
+  var btn = document.getElementById('gen-plan-btn');
+  var section = document.getElementById('ai-plan-section');
+  var list = document.getElementById('ai-plan-list');
+  var status = document.getElementById('ai-plan-status');
+  var apiKey = localStorage.getItem('hom_api_key');
+
+  if (!apiKey) {
+    showToast('Configura prima la API Key nelle Impostazioni', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Generando piano...';
+  section.style.display = 'block';
+  list.innerHTML = '';
+  status.textContent = 'Claude sta analizzando e generando il piano del mese...';
+
+  var kb = localStorage.getItem('hom_knowledge') ? JSON.parse(localStorage.getItem('hom_knowledge')) : {};
+  var now = new Date();
+  var mese = now.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
+
+  var prompt = 'Sei il social media manager di House of Music (HOM), primo gruppo musicale indipendente italiano.\n\n' +
+    'Genera un piano editoriale LinkedIn per ' + mese + ' con 8-10 post.\n\n' +
+    'Per ogni post fornisci:\n' +
+    '- Data consigliata\n' +
+    '- Ora consigliata (tra 9:00 e 18:00)\n' +
+    '- Tema del post\n' +
+    '- Formato consigliato (testo, riflessione, annuncio, dietro le quinte)\n\n' +
+    'Contesto HOM: ' + (kb.desc || 'Ecosistema musicale multi-asset italiano') + '\n\n' +
+    'Rispondi in JSON con questo formato:\n' +
+    '[{"data":"2024-03-05","ora":"10:00","tema":"Titolo tema","formato":"testo","descrizione":"Breve descrizione del contenuto"}]';
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    var data = await res.json();
+    var text = data.content[0].text;
+    var jsonMatch = text.match(/\[[\s\S]*\]/);
+    var posts = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+
+    if (posts.length === 0) throw new Error('Nessun post generato');
+
+    list.innerHTML = '';
+    posts.forEach(function(post, i) {
+      var div = document.createElement('div');
+      div.style.cssText = 'padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px;';
+      div.innerHTML = '<div style="flex:1"><div style="font-family:DM Mono,monospace; font-size:11px; color:var(--gray-light);">' + post.data + ' — ' + post.ora + ' · ' + post.formato + '</div><div style="font-weight:600; margin-top:4px;">' + post.tema + '</div><div style="font-size:13px; color:var(--gray-light); margin-top:2px;">' + post.descrizione + '</div></div><button onclick="approveAIPlan(' + i + ')" style="background:var(--gold);color:var(--black);border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:Syne,sans-serif;font-weight:600;font-size:12px;white-space:nowrap;">✓ Approva</button>';
+      list.appendChild(div);
+    });
+
+    window._aiPlan = posts;
+    status.textContent = posts.length + ' post generati. Approva quelli che vuoi aggiungere al calendario.';
+    showToast('Piano AI generato!', 'success');
+  } catch(e) {
+    status.textContent = 'Errore: ' + e.message;
+    showToast('Errore generazione piano', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '✦ Genera Piano AI';
+}
+
+function approveAIPlan(index) {
+  var post = window._aiPlan[index];
+  if (!post) return;
+  var newPost = {
+    id: Date.now().toString(),
+    content: post.tema + '\n\n' + post.descrizione,
+    status: 'pending',
+    scheduledDate: post.data + 'T' + post.ora + ':00',
+    topic: post.tema,
+    format: post.formato,
+    createdAt: new Date().toISOString()
+  };
+  var posts = JSON.parse(localStorage.getItem('hom_posts') || '[]');
+  posts.push(newPost);
+  localStorage.setItem('hom_posts', JSON.stringify(posts));
+  showToast('Post aggiunto al calendario!', 'success');
+  renderCalendar();
+}
+
+// ===== GITHUB TOKEN =====
+function saveGithubToken() {
+  var token = document.getElementById('github-token-input').value.trim();
+  if (token) {
+    localStorage.setItem('github_token', token);
+    var status = document.getElementById('github-token-status');
+    if (status) status.textContent = '✓ Token salvato';
+    showToast('GitHub Token salvato', 'success');
+  }
+}
+
+// ===== UPDATE CHAT =====
+var updateChatHistory = [];
+
+function initUpdateView() {
+  // Stato API
+  var key = localStorage.getItem('hom_api_key');
+  var dot = document.getElementById('update-api-dot');
+  var txt = document.getElementById('update-api-status');
+  if (key && key.startsWith('sk-ant')) {
+    if (dot) { dot.classList.add('ok'); }
+    if (txt) txt.textContent = 'Configurata ✓';
+  } else {
+    if (dot) dot.classList.remove('ok');
+    if (txt) txt.textContent = 'Non configurata — vai in Impostazioni';
+  }
+  // Token GitHub
+  var ghToken = localStorage.getItem('github_token');
+  var ghInput = document.getElementById('github-token-input');
+  var ghStatus = document.getElementById('github-token-status');
+  if (ghToken && ghInput) {
+    ghInput.value = ghToken;
+    if (ghStatus) ghStatus.textContent = '✓ Token salvato';
+  }
+}
+
+function appendUpdateMessage(role, html) {
+  var container = document.getElementById('update-chat-messages');
+  if (!container) return;
+  var isFirst = container.querySelector('.update-welcome');
+  if (isFirst) isFirst.remove();
+
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'display: flex; gap: 10px; align-items: flex-start; ' + (role === 'user' ? 'flex-direction: row-reverse;' : '');
+
+  var avatar = document.createElement('div');
+  avatar.style.cssText = 'width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; ' +
+    (role === 'user' ? 'background: var(--gold); color: var(--black); font-weight: 700;' : 'background: rgba(200,169,110,0.15); color: var(--gold); border: 1px solid var(--border);');
+  avatar.textContent = role === 'user' ? 'T' : '⚡';
+
+  var bubble = document.createElement('div');
+  bubble.style.cssText = 'max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.6; ' +
+    (role === 'user'
+      ? 'background: rgba(200,169,110,0.12); border: 1px solid rgba(200,169,110,0.2); color: var(--white); border-top-right-radius: 4px;'
+      : 'background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--white); border-top-left-radius: 4px;');
+  bubble.innerHTML = html;
+
+  wrap.appendChild(avatar);
+  wrap.appendChild(bubble);
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+  return bubble;
+}
+
+async function sendUpdateMessage() {
+  var input = document.getElementById('update-chat-input');
+  var btn = document.getElementById('update-send-btn');
+  var msg = input.value.trim();
+  if (!msg) return;
+
+  var apiKey = localStorage.getItem('hom_api_key');
+  var ghToken = localStorage.getItem('github_token');
+
+  if (!apiKey) {
+    showToast('Configura la API Key in Impostazioni', 'error');
+    showView('impostazioni');
+    return;
+  }
+  if (!ghToken) {
+    showToast('Inserisci prima il GitHub Token', 'error');
+    return;
+  }
+
+  input.value = '';
+  input.style.height = '48px';
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+  appendUpdateMessage('user', msg);
+  updateChatHistory.push({ role: 'user', content: msg });
+
+  // Bubble risposta con loading
+  var replyBubble = appendUpdateMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>');
+
+  try {
+    // 1. Scarica il codice attuale da GitHub
+    var fileRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      headers: { 'Authorization': 'token ' + ghToken, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!fileRes.ok) throw new Error('Errore lettura file GitHub — controlla il token');
+    var fileData = await fileRes.json();
+    var currentCode = atob(fileData.content.replace(/\n/g, ''));
+    var sha = fileData.sha;
+
+    // 2. Chiama Claude con il codice
+    var systemMsg = 'Sei un developer esperto. Ti viene fornito il codice HTML completo di una web app.\n' +
+      'Il tuo compito è applicare le modifiche richieste dall\'utente e restituire il CODICE HTML COMPLETO AGGIORNATO.\n' +
+      'IMPORTANTE:\n' +
+      '- Restituisci SOLO il codice HTML completo, nient\'altro\n' +
+      '- Non aggiungere spiegazioni, markdown, o backtick\n' +
+      '- Inizia direttamente con <!DOCTYPE html>\n' +
+      '- Mantieni tutto il codice esistente, modifica solo ciò che viene richiesto\n\n' +
+      'CODICE ATTUALE:\n' + currentCode;
+
+    var messages = updateChatHistory.slice();
+
+    var claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        system: systemMsg,
+        messages: messages
+      })
+    });
+
+    if (!claudeRes.ok) {
+      var err = await claudeRes.json();
+      throw new Error('Errore Claude: ' + (err.error && err.error.message ? err.error.message : claudeRes.status));
+    }
+
+    var claudeData = await claudeRes.json();
+    var newCode = claudeData.content[0].text.trim();
+
+    // Pulizia sicura nel caso Claude aggiunga backtick
+    if (newCode.startsWith('```')) {
+      newCode = newCode.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '').trim();
+    }
+
+    if (!newCode.includes('<!DOCTYPE html>')) {
+      throw new Error('Claude non ha restituito HTML valido — riprova con istruzioni più precise');
+    }
+
+    // 3. Pubblica su GitHub
+    var encoded = btoa(unescape(encodeURIComponent(newCode)));
+    var pushRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'token ' + ghToken,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: 'Update: ' + msg.substring(0, 60),
+        content: encoded,
+        sha: sha
+      })
+    });
+
+    if (!pushRes.ok) throw new Error('Errore pubblicazione su GitHub');
+
+    updateChatHistory.push({ role: 'assistant', content: '✅ Modifiche applicate e pubblicate su GitHub.' });
+
+    replyBubble.innerHTML =
+      '<div style="color: var(--green); font-weight: 600; margin-bottom: 8px;">✅ Fatto! Modifiche pubblicate su GitHub.</div>' +
+      '<div style="font-size: 12px; color: var(--gray-light);">La pagina si aggiornerà tra circa 30 secondi.<br>' +
+      '<a href="https://yfcreator.github.io/hom-linkedin" target="_blank" style="color: var(--gold); text-decoration: underline;">Apri app aggiornata →</a></div>';
+
+    showToast('✅ App aggiornata!', 'success');
+
+  } catch(e) {
+    updateChatHistory.push({ role: 'assistant', content: 'Errore: ' + e.message });
+    replyBubble.innerHTML = '<div style="color: var(--red);">❌ ' + e.message + '</div>';
+    showToast('Errore aggiornamento', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '↑';
+}
+
+// ===== START =====
+window.showView = showView;
+window.generatePost = generatePost;
+window.approveGenerated = approveGenerated;
+window.saveAsDraft = saveAsDraft;
+window.openReview = openReview;
+window.closeModal = closeModal;
+window.publishPost = publishPost;
+window.deletePost = deletePost;
+window.quickPublish = quickPublish;
+window.confirmDelete = confirmDelete;
+window.filterPosts = filterPosts;
+window.changeMonth = changeMonth;
+window.showDayPosts = showDayPosts;
+window.saveKnowledge = saveKnowledge;
+window.saveApiKey = saveApiKey;
+window.testApiKey = testApiKey;
+window.updatePreview = updatePreview;
+window.updateModalPreview = updateModalPreview;
+window.updateApp = updateApp;
+window.generateCalendarPlan = generateCalendarPlan;
+window.approveAIPlan = approveAIPlan;
+window.saveGithubToken = saveGithubToken;
+window.sendUpdateMessage = sendUpdateMessage;
+window.initUpdateView = initUpdateView;
+init();
+</script>
+</body>
+</html>
