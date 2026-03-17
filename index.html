@@ -549,6 +549,43 @@
 
   .cal-day.other-month { color: var(--gray); }
 
+  .cal-post-pill {
+    font-size: 9px;
+    background: rgba(200,169,110,0.2);
+    color: var(--gold);
+    border-radius: 3px;
+    padding: 1px 4px;
+    margin-top: 2px;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    cursor: pointer;
+    border: none;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .cal-post-pill.published {
+    background: rgba(58,124,90,0.2);
+    color: #5aab7a;
+  }
+
+  .cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    position: relative;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    padding: 4px 2px;
+    min-height: 52px;
+  }
+
   /* KNOWLEDGE BASE */
   .kb-section {
     margin-bottom: 32px;
@@ -907,29 +944,39 @@
     <div class="page-header">
       <div>
         <div class="page-title">Calendario</div>
-        <div class="page-sub">Pianifica i tuoi post con AI</div>
+        <div class="page-sub">Post pianificati e pubblicati nel mese</div>
       </div>
       <button class="btn btn-primary" onclick="generateCalendarPlan()" id="gen-plan-btn">✦ Genera Piano AI</button>
     </div>
 
+    <!-- Piano AI proposta -->
     <div id="ai-plan-section" style="display:none; margin-bottom: 24px;">
       <div class="card" style="background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
-        <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; color: var(--gold); margin-bottom: 12px;">✦ Piano AI del Mese</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:14px; color:var(--gold);">✦ Piano AI — assegna date ai post in attesa</div>
+          <button class="btn btn-ghost" onclick="document.getElementById('ai-plan-section').style.display='none'" style="font-size:12px;">✕ Chiudi</button>
+        </div>
         <div id="ai-plan-list"></div>
-        <div id="ai-plan-status" style="font-size: 12px; color: var(--gray); font-family: 'DM Mono', monospace; margin-top: 8px;"></div>
+        <div id="ai-plan-status" style="font-size:12px; color:var(--gray); font-family:'DM Mono',monospace; margin-top:8px;"></div>
       </div>
     </div>
 
+    <!-- Navigazione mese + vista lista -->
     <div class="card">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
         <button class="btn btn-ghost" onclick="changeMonth(-1)">← Prev</button>
-        <div style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px;" id="cal-title"></div>
+        <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:18px;" id="cal-title"></div>
         <button class="btn btn-ghost" onclick="changeMonth(1)">Next →</button>
       </div>
+
+      <!-- Griglia giorni settimana -->
       <div class="calendar-grid" id="cal-headers"></div>
       <div class="calendar-grid" id="cal-grid"></div>
     </div>
-    <div id="cal-day-posts" style="margin-top: 24px;"></div>
+
+    <!-- Lista post del mese sotto la griglia -->
+    <div id="cal-month-posts" style="margin-top: 24px;"></div>
+    <div id="cal-day-posts" style="margin-top: 16px;"></div>
   </div>
 
   <!-- STORICO -->
@@ -1740,38 +1787,88 @@ function filterPosts(type) {
 
 // ===== CALENDAR =====
 function renderCalendar() {
-  const year = calendarDate.getFullYear();
-  const month = calendarDate.getMonth();
-  const today = new Date();
-  const months = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-  const days = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  var year = calendarDate.getFullYear();
+  var month = calendarDate.getMonth();
+  var today = new Date();
+  var months = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  var days = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 
-  document.getElementById('cal-title').textContent = `${months[month]} ${year}`;
+  document.getElementById('cal-title').textContent = months[month] + ' ' + year;
 
-  const headersEl = document.getElementById('cal-headers');
-  headersEl.innerHTML = days.map(d => `<div class="cal-header">${d}</div>`).join('');
+  var headersEl = document.getElementById('cal-headers');
+  headersEl.innerHTML = days.map(function(d) { return '<div class="cal-header">' + d + '</div>'; }).join('');
 
-  const firstDay = new Date(year, month, 1);
-  let startDow = firstDay.getDay() - 1;
+  var firstDay = new Date(year, month, 1);
+  var startDow = firstDay.getDay() - 1;
   if (startDow < 0) startDow = 6;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const daysInPrev = new Date(year, month, 0).getDate();
+  var daysInMonth = new Date(year, month + 1, 0).getDate();
+  var daysInPrev = new Date(year, month, 0).getDate();
 
-  let html = '';
-  for (let i = startDow - 1; i >= 0; i--) {
-    html += `<div class="cal-day other-month">${daysInPrev - i}</div>`;
+  // Raccoglie tutti i post con data schedulata o pubblicata nel mese
+  var monthPosts = posts.filter(function(p) {
+    var d = p.scheduledDate || p.publishedAt || p.created || '';
+    return d.startsWith(year + '-' + String(month+1).padStart(2,'0'));
+  });
+
+  var html = '';
+  for (var i = startDow - 1; i >= 0; i--) {
+    html += '<div class="cal-day other-month"><span>' + (daysInPrev - i) + '</span></div>';
   }
-  for (let d = 1; d <= daysInMonth; d++) {
-    const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const hasPost = posts.some(p => (p.publishedAt || p.created || '').startsWith(dateStr));
-    html += `<div class="cal-day ${isToday ? 'today' : ''} ${hasPost ? 'has-post' : ''}" onclick="showDayPosts('${dateStr}')">${d}</div>`;
+  for (var d = 1; d <= daysInMonth; d++) {
+    var isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+    var dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    var dayPosts = monthPosts.filter(function(p) {
+      var pd = (p.scheduledDate || p.publishedAt || p.created || '').substring(0,10);
+      return pd === dateStr;
+    });
+    var pillsHtml = dayPosts.slice(0,2).map(function(p) {
+      var label = (p.topic || p.text || '').substring(0,12);
+      var cls = p.status === 'published' ? 'published' : '';
+      return '<div class="cal-post-pill ' + cls + '" onclick="event.stopPropagation();showDayPosts(\'' + dateStr + '\')" title="' + (p.topic || '') + '">' + label + '</div>';
+    }).join('');
+    if (dayPosts.length > 2) pillsHtml += '<div style="font-size:9px;color:var(--gray);text-align:center;">+' + (dayPosts.length-2) + '</div>';
+    html += '<div class="cal-day ' + (isToday ? 'today' : '') + (dayPosts.length ? ' has-post' : '') + '" onclick="showDayPosts(\'' + dateStr + '\')">' +
+      '<span style="font-weight:' + (isToday ? '700' : '400') + '">' + d + '</span>' +
+      pillsHtml +
+      '</div>';
   }
-  const remaining = 42 - (startDow + daysInMonth);
-  for (let i = 1; i <= remaining; i++) {
-    html += `<div class="cal-day other-month">${i}</div>`;
+  var remaining = 42 - (startDow + daysInMonth);
+  for (var i = 1; i <= remaining; i++) {
+    html += '<div class="cal-day other-month"><span>' + i + '</span></div>';
   }
   document.getElementById('cal-grid').innerHTML = html;
+
+  // Lista post del mese sotto la griglia
+  renderMonthPostsList(monthPosts, months[month] + ' ' + year);
+}
+
+function renderMonthPostsList(monthPosts, label) {
+  var el = document.getElementById('cal-month-posts');
+  if (!el) return;
+  if (!monthPosts.length) {
+    el.innerHTML = '<div style="color:var(--gray);font-size:13px;padding:20px 0;font-style:italic;">Nessun post pianificato questo mese — usa <b style=\'color:var(--gold)\'>Genera Piano AI</b> per distribuire i post approvati.</div>';
+    return;
+  }
+  // Ordina per data
+  var sorted = monthPosts.slice().sort(function(a,b) {
+    var da = a.scheduledDate || a.publishedAt || a.created || '';
+    var db = b.scheduledDate || b.publishedAt || b.created || '';
+    return da.localeCompare(db);
+  });
+  el.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray);margin-bottom:16px;">' + sorted.length + ' post in ' + label + '</div>' +
+    sorted.map(function(p) {
+      var d = new Date(p.scheduledDate || p.publishedAt || p.created);
+      var dateLabel = d.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'short'});
+      var timeLabel = p.scheduledDate ? d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}) : '';
+      var statusColor = p.status === 'published' ? 'var(--green)' : p.status === 'pending' ? 'var(--gold)' : 'var(--gray)';
+      var statusLabel = p.status === 'published' ? 'Pubblicato' : p.status === 'pending' ? 'In attesa' : 'Bozza';
+      return '<div style="display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);">' +
+        '<div style="min-width:90px;font-family:\'DM Mono\',monospace;font-size:11px;color:var(--gold);">' + dateLabel + (timeLabel ? '<br><span style="color:var(--gray)">' + timeLabel + '</span>' : '') + '</div>' +
+        '<div style="flex:1;font-size:13px;color:var(--white);line-height:1.4;">' + (p.text || p.content || '').substring(0,100) + '...</div>' +
+        '<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:' + statusColor + ';white-space:nowrap;">' + statusLabel + '</div>' +
+        '<button onclick="openReview(' + p.id + ')" style="background:none;border:1px solid var(--border);color:var(--gray-light);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:11px;white-space:nowrap;">Apri</button>' +
+        '</div>';
+    }).join('');
 }
 
 function showDayPosts(dateStr) {
@@ -1939,26 +2036,42 @@ async function generateCalendarPlan() {
     return;
   }
 
+  // Prende i post pending SENZA data schedulata
+  var pendingPosts = posts.filter(function(p) {
+    return p.status === 'pending' && !p.scheduledDate;
+  });
+
+  if (pendingPosts.length === 0) {
+    showToast('Nessun post in attesa da pianificare — approva prima dei post', 'error');
+    return;
+  }
+
   btn.disabled = true;
   btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Generando piano...';
   section.style.display = 'block';
   list.innerHTML = '';
-  status.textContent = 'Claude sta analizzando e generando il piano del mese...';
+  status.textContent = 'Claude sta distribuendo ' + pendingPosts.length + ' post nel calendario...';
 
   var kb = localStorage.getItem('hom_knowledge') ? JSON.parse(localStorage.getItem('hom_knowledge')) : {};
   var now = new Date();
   var mese = now.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
+  var year = now.getFullYear();
+  var month = String(now.getMonth()+1).padStart(2,'0');
 
-  var prompt = 'Sei il social media manager di House of Music (HOM), primo gruppo musicale indipendente italiano.\n\n' +
-    'Genera un piano editoriale LinkedIn per ' + mese + ' con 8-10 post.\n\n' +
-    'Per ogni post fornisci:\n' +
-    '- Data consigliata\n' +
-    '- Ora consigliata (tra 9:00 e 18:00)\n' +
-    '- Tema del post\n' +
-    '- Formato consigliato (testo, riflessione, annuncio, dietro le quinte)\n\n' +
-    'Contesto HOM: ' + (kb.desc || 'Ecosistema musicale multi-asset italiano') + '\n\n' +
-    'Rispondi in JSON con questo formato:\n' +
-    '[{"data":"2024-03-05","ora":"10:00","tema":"Titolo tema","formato":"testo","descrizione":"Breve descrizione del contenuto"}]';
+  var postsDesc = pendingPosts.map(function(p, i) {
+    return (i+1) + '. ' + (p.topic || p.text.substring(0,50));
+  }).join('\n');
+
+  var prompt = 'Sei il social media manager di House of Music (HOM).\n\n' +
+    'Ho questi ' + pendingPosts.length + ' post da pubblicare su LinkedIn:\n' + postsDesc + '\n\n' +
+    'Distribuiscili in modo ottimale in ' + mese + '.\n' +
+    'Regole:\n' +
+    '- Usa giorni feriali (lun-ven)\n' +
+    '- Orari tra 9:00 e 18:00 (meglio 10:00, 12:00, 16:00)\n' +
+    '- Almeno 2 giorni di distanza tra un post e laltro\n' +
+    '- Parti dalla data di oggi o successiva\n\n' +
+    'Rispondi SOLO con JSON in questo formato (un oggetto per ogni post, stesso ordine):\n' +
+    '[{"index":0,"data":"' + year + '-' + month + '-05","ora":"10:00"},{"index":1,"data":"' + year + '-' + month + '-07","ora":"12:00"}]';
 
   try {
     var res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1970,30 +2083,36 @@ async function generateCalendarPlan() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
     var data = await res.json();
-    var text = data.content[0].text;
-    var jsonMatch = text.match(/\[[\s\S]*\]/);
-    var posts = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-
-    if (posts.length === 0) throw new Error('Nessun post generato');
+    var text = data.content[0].text.trim();
+    if (text.startsWith('```')) text = text.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '').trim();
+    var plan = JSON.parse(text);
 
     list.innerHTML = '';
-    posts.forEach(function(post, i) {
+    plan.forEach(function(item) {
+      var post = pendingPosts[item.index];
+      if (!post) return;
       var div = document.createElement('div');
-      div.style.cssText = 'padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px;';
-      div.innerHTML = '<div style="flex:1"><div style="font-family:DM Mono,monospace; font-size:11px; color:var(--gray-light);">' + post.data + ' — ' + post.ora + ' · ' + post.formato + '</div><div style="font-weight:600; margin-top:4px;">' + post.tema + '</div><div style="font-size:13px; color:var(--gray-light); margin-top:2px;">' + post.descrizione + '</div></div><button onclick="approveAIPlan(' + i + ')" style="background:var(--gold);color:var(--black);border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:Syne,sans-serif;font-weight:600;font-size:12px;white-space:nowrap;">✓ Approva</button>';
+      div.style.cssText = 'padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+      div.innerHTML =
+        '<div style="flex:1">' +
+          '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--gold);margin-bottom:4px;">📅 ' + item.data + ' alle ' + item.ora + '</div>' +
+          '<div style="font-size:13px;font-weight:600;">' + (post.topic || post.text.substring(0,60)) + '</div>' +
+          '<div style="font-size:12px;color:var(--gray-light);margin-top:2px;">' + post.text.substring(0,80) + '...</div>' +
+        '</div>' +
+        '<button onclick="schedulePost(\'' + post.id + '\',\'' + item.data + '\',\'' + item.ora + '\')" style="background:var(--gold);color:var(--black);border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:Syne,sans-serif;font-weight:600;font-size:12px;white-space:nowrap;">✓ Conferma</button>';
       list.appendChild(div);
     });
 
-    window._aiPlan = posts;
-    status.textContent = posts.length + ' post generati. Approva quelli che vuoi aggiungere al calendario.';
-    showToast('Piano AI generato!', 'success');
+    status.textContent = plan.length + ' post pianificati. Conferma le date o modificale.';
+    showToast('Piano generato!', 'success');
+
   } catch(e) {
     status.textContent = 'Errore: ' + e.message;
     showToast('Errore generazione piano', 'error');
@@ -2003,23 +2122,23 @@ async function generateCalendarPlan() {
   btn.innerHTML = '✦ Genera Piano AI';
 }
 
-function approveAIPlan(index) {
-  var post = window._aiPlan[index];
-  if (!post) return;
-  var newPost = {
-    id: Date.now().toString(),
-    content: post.tema + '\n\n' + post.descrizione,
-    status: 'pending',
-    scheduledDate: post.data + 'T' + post.ora + ':00',
-    topic: post.tema,
-    format: post.formato,
-    createdAt: new Date().toISOString()
-  };
-  var posts = JSON.parse(localStorage.getItem('hom_posts') || '[]');
-  posts.push(newPost);
-  localStorage.setItem('hom_posts', JSON.stringify(posts));
-  showToast('Post aggiunto al calendario!', 'success');
+function schedulePost(postId, data, ora) {
+  var idx = posts.findIndex(function(p) { return String(p.id) === String(postId); });
+  if (idx === -1) return;
+  posts[idx].scheduledDate = data + 'T' + ora + ':00';
+  savePosts();
   renderCalendar();
+  showToast('Post pianificato per ' + data + ' alle ' + ora + '!', 'success');
+  // Rimuovi la riga dal piano
+  var allItems = document.querySelectorAll('#ai-plan-list > div');
+  allItems.forEach(function(item) {
+    if (item.innerHTML.includes(postId)) item.remove();
+  });
+  var remaining = document.querySelectorAll('#ai-plan-list > div').length;
+  if (remaining === 0) {
+    document.getElementById('ai-plan-section').style.display = 'none';
+    showToast('Tutti i post pianificati! 🎉', 'success');
+  }
 }
 
 // ===== GITHUB TOKEN =====
@@ -2432,6 +2551,7 @@ window.updateModalPreview = updateModalPreview;
 window.updateApp = updateApp;
 window.generateCalendarPlan = generateCalendarPlan;
 window.approveAIPlan = approveAIPlan;
+window.schedulePost = schedulePost;
 window.saveGithubToken = saveGithubToken;
 window.sendUpdateMessage = sendUpdateMessage;
 window.initUpdateView = initUpdateView;
