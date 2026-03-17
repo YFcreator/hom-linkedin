@@ -714,16 +714,12 @@
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <svg width="120" height="72" viewBox="0 0 120 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Rombo pittogramma HOM -->
-      <g transform="translate(8, 2)">
-        <polygon points="32,2 62,18 32,34 2,18" fill="#c8a96e"/>
-        <ellipse cx="32" cy="18" rx="8" ry="5" fill="#0a0a0a"/>
-      </g>
-      <!-- Scritta HOM -->
-      <text x="8" y="62" font-family="Syne, sans-serif" font-weight="800" font-size="22" letter-spacing="4" fill="#ffffff">HOM</text>
+    <svg width="140" height="52" viewBox="0 0 140 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="20,4 36,14 20,24 4,14" fill="#c8a96e"/>
+      <ellipse cx="20" cy="14" rx="5" ry="3" fill="#0a0a0a"/>
+      <text x="44" y="20" font-family="Syne, sans-serif" font-weight="800" font-size="20" letter-spacing="5" fill="#ffffff">HOM</text>
+      <text x="44" y="36" font-family="DM Mono, monospace" font-weight="300" font-size="9" letter-spacing="2" fill="#6b6560">LINKEDIN MANAGER</text>
     </svg>
-    <span class="logo-sub">LinkedIn Manager</span>
   </div>
 
   <span class="nav-section">Contenuti</span>
@@ -897,9 +893,19 @@
     <div class="page-header">
       <div>
         <div class="page-title">Calendario</div>
-        <div class="page-sub">Pianifica i tuoi post</div>
+        <div class="page-sub">Pianifica i tuoi post con AI</div>
+      </div>
+      <button class="btn btn-primary" onclick="generateCalendarPlan()" id="gen-plan-btn">✦ Genera Piano AI</button>
+    </div>
+
+    <div id="ai-plan-section" style="display:none; margin-bottom: 24px;">
+      <div class="card" style="background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
+        <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; color: var(--gold); margin-bottom: 12px;">✦ Piano AI del Mese</div>
+        <div id="ai-plan-list"></div>
+        <div id="ai-plan-status" style="font-size: 12px; color: var(--gray); font-family: 'DM Mono', monospace; margin-top: 8px;"></div>
       </div>
     </div>
+
     <div class="card">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
         <button class="btn btn-ghost" onclick="changeMonth(-1)">← Prev</button>
@@ -1018,24 +1024,9 @@
     </div>
 
     <div class="card" style="margin-bottom: 20px; background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
-      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">⚡ Dev Chat — Aggiorna App</div>
-      <div style="font-size: 13px; color: var(--gray-light); margin-bottom: 16px;">Scrivi le modifiche che vuoi fare. Claude le applica e pubblica su GitHub automaticamente.</div>
-      <div class="kb-field" style="margin-bottom: 12px;">
-        <label>GitHub Token</label>
-        <div class="api-input-wrap">
-          <input type="password" id="github-token" placeholder="ghp_..." style="font-family: 'DM Mono', monospace;">
-          <button class="btn btn-outline" onclick="saveGithubToken()">Salva</button>
-        </div>
-        <div style="font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace;">Salvato solo nel browser. Serve permesso "repo".</div>
-      </div>
-      <div id="dev-chat-messages" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 12px; min-height: 80px; max-height: 300px; overflow-y: auto; margin-bottom: 12px; font-size: 13px; font-family: 'DM Mono', monospace; color: var(--gray-light);">
-        <div style="color: var(--gray);">Pronto. Scrivi cosa vuoi modificare...</div>
-      </div>
-      <div style="display: flex; gap: 8px; align-items: flex-end;">
-        <textarea id="dev-chat-input" placeholder="Es: metti il logo in bianco, aggiungi un campo per il tono del post..." style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 13px; resize: vertical; min-height: 60px;"></textarea>
-        <button class="btn btn-primary" onclick="sendDevChat()" id="dev-chat-btn" style="padding: 10px 16px; white-space: nowrap;">⚡ Invia</button>
-      </div>
-      <div id="dev-chat-status" style="margin-top: 8px; font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace;"></div>
+      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px; color: var(--gold);">⚡ Aggiorna App</div>
+      <div style="font-size: 13px; color: var(--gray-light); margin-bottom: 16px;">Apri la pagina di aggiornamento per modificare l'app tramite Claude.</div>
+      <a href="/hom-linkedin/update.html" style="display: block; text-align: center; background: var(--gold); color: var(--black); padding: 14px; border-radius: 8px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; text-decoration: none;">⚡ Apri Aggiorna App</a>
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
@@ -1614,10 +1605,19 @@ function saveKnowledge() {
 }
 
 function loadKnowledge() {
-  const kb = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
+  var defaultKb = {
+    desc: "Nell'industria musicale contemporanea, un'etichetta discografica è prima di tutto un sistema di valori. La musica è la conseguenza più riconoscibile di un processo più complesso — sono i valori, la visione, la comunità a darle forma, direzione e ragione per durare.\n\nHOM è la casa discografica. Le label che la abitano sono espressioni di visioni, culture e comunità diverse — suoni e stili distanti tra loro, ma persone unite da valori di base comuni. È da quei valori che la musica nasce. Sempre.\n\nEssere attrattivi, oggi, significa essere identitari. Non basta produrre musica di qualità: bisogna costruire un universo di senso attorno a essa, capace di intercettare comunità reali e di parlarle con coerenza nel tempo. HOM ha una propria identità — è il sistema di valori. Le label sono le sue declinazioni culturali, ciascuna con una voce autonoma ma radicata in quella base comune.\n\nHOM nasce dall'esperienza di Asian Fake, etichetta fondata nel 2017 a Milano che negli anni ha saputo costruire uno dei cataloghi più riconoscibili e rispettati dell'indipendente italiano. Asian Fake ha dimostrato che un posizionamento culturale netto non è un limite commerciale: è la condizione per costruire carriere durature.\n\nDischi d'oro e di platino, un pubblico fedele e trasversale, una reputazione costruita sulla qualità e sulla coerenza: Asian Fake non ha prodotto solo risultati, ma un metodo. HOM è l'applicazione di quel metodo su scala più ampia — una rete di label con identità forti, capaci di crescere nei propri perimetri con la solidità di una struttura condivisa.\n\nUn modello fondato sulla convinzione che il futuro dell'industria musicale stia nella specializzazione, non nella competizione di scala. In un mercato dominato dall'algoritmo e dalla logica del volume, le label che costruiscono comunità reali attorno a sistemi di valori chiari sono quelle che resistono e crescono. HOM è la casa di chi ci crede.",
+    values: "Indipendenza come vantaggio competitivo. Song-driven model. Specializzazione, non competizione di scala. Costruire comunità reali attorno a sistemi di valori chiari.",
+    audience: "Investitori del settore musicale, artisti indie, addetti ai lavori, manager, professionisti dell'industria creativa, appassionati di cultura musicale italiana."
+  };
+  const saved = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
+  const kb = Object.assign({}, defaultKb, saved);
   knowledge = kb;
+  if (!localStorage.getItem('hom_knowledge')) {
+    localStorage.setItem('hom_knowledge', JSON.stringify(kb));
+  }
   const fields = ['desc','values','audience','af','fluid','peroni','other','news','milestones','hashtags'];
-  fields.forEach(f => {
+  fields.forEach(function(f) {
     const el = document.getElementById('kb-' + f);
     if (el && kb[f]) el.value = kb[f];
   });
@@ -1663,96 +1663,7 @@ document.getElementById('review-modal').addEventListener('click', function(e) {
 });
 
 // ===== UPDATE APP =====
-async function sendDevChat() {
-  var input = document.getElementById('dev-chat-input');
-  var messages = document.getElementById('dev-chat-messages');
-  var status = document.getElementById('dev-chat-status');
-  var btn = document.getElementById('dev-chat-btn');
-  var instruction = input.value.trim();
-  if (!instruction) return;
 
-  var apiKey = localStorage.getItem('hom_api_key');
-  var githubToken = localStorage.getItem('github_token');
-  if (!apiKey) { status.textContent = 'Inserisci prima la API Key Anthropic'; return; }
-  if (!githubToken) { status.textContent = 'Inserisci prima il GitHub Token'; return; }
-
-  var msgDiv = document.createElement('div');
-  msgDiv.style.color = 'var(--gold)';
-  msgDiv.style.marginBottom = '8px';
-  msgDiv.textContent = '> ' + instruction;
-  messages.appendChild(msgDiv);
-  input.value = '';
-  btn.disabled = true;
-  status.textContent = 'Claude sta leggendo il codice...';
-
-  try {
-    var fileRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
-      headers: { 'Authorization': 'token ' + githubToken, 'Accept': 'application/vnd.github.v3+json' }
-    });
-    var fileData = await fileRes.json();
-    var currentCode = atob(fileData.content.replace(/\n/g, ''));
-    var sha = fileData.sha;
-
-    status.textContent = 'Claude sta generando le modifiche...';
-
-    var prompt = 'Sei uno sviluppatore. Ti do il codice HTML completo di una web app e una richiesta di modifica. Rispondi SOLO con il codice HTML completo modificato, senza spiegazioni, senza markdown, senza backtick.\n\nRICHIESTA: ' + instruction + '\n\nCODICE ATTUALE:\n' + currentCode;
-
-    var claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    var claudeData = await claudeRes.json();
-    var newCode = claudeData.content[0].text;
-
-    status.textContent = 'Pubblicazione su GitHub...';
-
-    var encoded = btoa(unescape(encodeURIComponent(newCode)));
-    var updateRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
-      method: 'PUT',
-      headers: {
-        'Authorization': 'token ' + githubToken,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ message: 'Dev: ' + instruction, content: encoded, sha: sha })
-    });
-
-    if (!updateRes.ok) throw new Error('Errore GitHub');
-    var okDiv = document.createElement('div');
-    okDiv.style.color = 'var(--green)';
-    okDiv.style.marginBottom = '8px';
-    okDiv.textContent = 'Fatto! Ricarica tra 30 secondi.';
-    messages.appendChild(okDiv);
-    status.textContent = 'App aggiornata!';
-    showToast('App aggiornata!', 'success');
-  } catch(e) {
-    var errDiv = document.createElement('div');
-    errDiv.style.color = 'var(--red)';
-    errDiv.style.marginBottom = '8px';
-    errDiv.textContent = 'Errore: ' + e.message;
-    messages.appendChild(errDiv);
-    status.textContent = 'Errore: ' + e.message;
-  }
-  btn.disabled = false;
-  messages.scrollTop = messages.scrollHeight;
-}
-
-function saveGithubToken() {
-  const token = document.getElementById('github-token').value.trim();
-  if (!token) return showToast('Inserisci un token valido', 'error');
-  localStorage.setItem('github_token', token);
-  document.getElementById('github-token').value = '';
-  showToast('✅ Token GitHub salvato!', 'success');
-}
 
 async function updateApp() {
   const btn = document.getElementById('update-btn');
@@ -1804,6 +1715,108 @@ async function updateApp() {
   btn.innerHTML = '⚡ Aggiorna App da GitHub';
 }
 
+
+// ===== CALENDAR AI PLAN =====
+async function generateCalendarPlan() {
+  var btn = document.getElementById('gen-plan-btn');
+  var section = document.getElementById('ai-plan-section');
+  var list = document.getElementById('ai-plan-list');
+  var status = document.getElementById('ai-plan-status');
+  var apiKey = localStorage.getItem('hom_api_key');
+
+  if (!apiKey) {
+    showToast('Configura prima la API Key nelle Impostazioni', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Generando piano...';
+  section.style.display = 'block';
+  list.innerHTML = '';
+  status.textContent = 'Claude sta analizzando e generando il piano del mese...';
+
+  var kb = localStorage.getItem('hom_knowledge') ? JSON.parse(localStorage.getItem('hom_knowledge')) : {};
+  var now = new Date();
+  var mese = now.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
+
+  var prompt = 'Sei il social media manager di House of Music (HOM), primo gruppo musicale indipendente italiano.
+
+Genera un piano editoriale LinkedIn per ' + mese + ' con 8-10 post.
+
+Per ogni post fornisci:
+- Data consigliata
+- Ora consigliata (tra 9:00 e 18:00)
+- Tema del post
+- Formato consigliato (testo, riflessione, annuncio, dietro le quinte)
+
+Contesto HOM: ' + (kb.desc || 'Ecosistema musicale multi-asset italiano') + '
+
+Rispondi in JSON con questo formato:
+[{"data":"2024-03-05","ora":"10:00","tema":"Titolo tema","formato":"testo","descrizione":"Breve descrizione del contenuto"}]';
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    var data = await res.json();
+    var text = data.content[0].text;
+    var jsonMatch = text.match(/\[[\s\S]*\]/);
+    var posts = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+
+    if (posts.length === 0) throw new Error('Nessun post generato');
+
+    list.innerHTML = '';
+    posts.forEach(function(post, i) {
+      var div = document.createElement('div');
+      div.style.cssText = 'padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px;';
+      div.innerHTML = '<div style="flex:1"><div style="font-family:DM Mono,monospace; font-size:11px; color:var(--gray-light);">' + post.data + ' — ' + post.ora + ' · ' + post.formato + '</div><div style="font-weight:600; margin-top:4px;">' + post.tema + '</div><div style="font-size:13px; color:var(--gray-light); margin-top:2px;">' + post.descrizione + '</div></div><button onclick="approveAIPlan(' + i + ')" style="background:var(--gold);color:var(--black);border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:Syne,sans-serif;font-weight:600;font-size:12px;white-space:nowrap;">✓ Approva</button>';
+      list.appendChild(div);
+    });
+
+    window._aiPlan = posts;
+    status.textContent = posts.length + ' post generati. Approva quelli che vuoi aggiungere al calendario.';
+    showToast('Piano AI generato!', 'success');
+  } catch(e) {
+    status.textContent = 'Errore: ' + e.message;
+    showToast('Errore generazione piano', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '✦ Genera Piano AI';
+}
+
+function approveAIPlan(index) {
+  var post = window._aiPlan[index];
+  if (!post) return;
+  var newPost = {
+    id: Date.now().toString(),
+    content: post.tema + '
+
+' + post.descrizione,
+    status: 'pending',
+    scheduledDate: post.data + 'T' + post.ora + ':00',
+    topic: post.tema,
+    format: post.formato,
+    createdAt: new Date().toISOString()
+  };
+  var posts = JSON.parse(localStorage.getItem('hom_posts') || '[]');
+  posts.push(newPost);
+  localStorage.setItem('hom_posts', JSON.stringify(posts));
+  showToast('Post aggiunto al calendario!', 'success');
+  renderCalendar();
+}
+
 // ===== START =====
 init();
 window.showView = showView;
@@ -1825,8 +1838,9 @@ window.testApiKey = testApiKey;
 window.updatePreview = updatePreview;
 window.updateModalPreview = updateModalPreview;
 window.updateApp = updateApp;
-window.saveGithubToken = saveGithubToken;
-window.sendDevChat = sendDevChat;
+window.generateCalendarPlan = generateCalendarPlan;
+window.approveAIPlan = approveAIPlan;
 </script>
+<script>
 </body>
 </html>
