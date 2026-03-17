@@ -1843,6 +1843,8 @@ function toggleKbSaved() {
     btn.textContent = 'Mostra →';
   }
 }
+
+function exportKnowledge() {
   var kb = localStorage.getItem('hom_knowledge');
   if (!kb) { showToast('Nessuna Knowledge Base salvata', 'error'); return; }
   var blob = new Blob([JSON.stringify(JSON.parse(kb), null, 2)], { type: 'application/json' });
