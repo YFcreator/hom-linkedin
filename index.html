@@ -1783,20 +1783,16 @@ async function generateCalendarPlan() {
   var now = new Date();
   var mese = now.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
 
-  var prompt = 'Sei il social media manager di House of Music (HOM), primo gruppo musicale indipendente italiano.
-
-Genera un piano editoriale LinkedIn per ' + mese + ' con 8-10 post.
-
-Per ogni post fornisci:
-- Data consigliata
-- Ora consigliata (tra 9:00 e 18:00)
-- Tema del post
-- Formato consigliato (testo, riflessione, annuncio, dietro le quinte)
-
-Contesto HOM: ' + (kb.desc || 'Ecosistema musicale multi-asset italiano') + '
-
-Rispondi in JSON con questo formato:
-[{"data":"2024-03-05","ora":"10:00","tema":"Titolo tema","formato":"testo","descrizione":"Breve descrizione del contenuto"}]';
+  var prompt = 'Sei il social media manager di House of Music (HOM), primo gruppo musicale indipendente italiano.\n\n' +
+    'Genera un piano editoriale LinkedIn per ' + mese + ' con 8-10 post.\n\n' +
+    'Per ogni post fornisci:\n' +
+    '- Data consigliata\n' +
+    '- Ora consigliata (tra 9:00 e 18:00)\n' +
+    '- Tema del post\n' +
+    '- Formato consigliato (testo, riflessione, annuncio, dietro le quinte)\n\n' +
+    'Contesto HOM: ' + (kb.desc || 'Ecosistema musicale multi-asset italiano') + '\n\n' +
+    'Rispondi in JSON con questo formato:\n' +
+    '[{"data":"2024-03-05","ora":"10:00","tema":"Titolo tema","formato":"testo","descrizione":"Breve descrizione del contenuto"}]';
 
   try {
     var res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1846,9 +1842,7 @@ function approveAIPlan(index) {
   if (!post) return;
   var newPost = {
     id: Date.now().toString(),
-    content: post.tema + '
-
-' + post.descrizione,
+    content: post.tema + '\n\n' + post.descrizione,
     status: 'pending',
     scheduledDate: post.data + 'T' + post.ora + ':00',
     topic: post.tema,
