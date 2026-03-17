@@ -348,7 +348,9 @@
     var input = document.getElementById(type + '-token');
     var val = input.value.trim();
     if (!val) return;
+    // Salva sia con prefisso hom_ che senza, per compatibilità con index.html
     localStorage.setItem('hom_' + type + '_token', val);
+    localStorage.setItem(type + '_token', val);
     input.value = '';
     var saved = document.getElementById(type + '-saved');
     if (saved) { saved.style.display = 'block'; setTimeout(function() { saved.style.display = 'none'; }, 2000); }
@@ -383,7 +385,7 @@
   // ===== MAIN FUNCTION =====
       function sendInstruction() {
     var instruction = document.getElementById('instruction').value.trim();
-    var githubToken = localStorage.getItem('hom_github_token');
+    var githubToken = localStorage.getItem('hom_github_token') || localStorage.getItem('github_token');
     var apiKey = localStorage.getItem('hom_api_key');
 
     if (!instruction) { setStatus('Scrivi prima una istruzione'); return; }
@@ -429,10 +431,11 @@ CODICE ATTUALE:
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 8000,
           messages: [{ role: 'user', content: prompt }]
         })
