@@ -917,23 +917,15 @@
 
     <!-- PROPOSTE -->
     <div id="gen-proposals" style="display: none;">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-        <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">Proposte AI — seleziona e approva</div>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn btn-ghost" onclick="selectAllProposals()" style="font-size: 12px;">Seleziona tutti</button>
-          <button class="btn btn-success" onclick="approveSelected()" id="approve-selected-btn" style="font-size: 13px;">✓ Approva selezionati</button>
-        </div>
-      </div>
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray); margin-bottom: 16px;">Proposte AI — seleziona quelle che vuoi approvare</div>
       <div id="proposals-list"></div>
 
-      <!-- GENERA PIANO -->
-      <div class="card" style="margin-top: 24px; background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div>
-            <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 15px; color: var(--gold);">📅 Genera Piano con AI</div>
-            <div style="font-size: 13px; color: var(--gray-light); margin-top: 4px;">Distribuisce i post approvati nel calendario del mese</div>
-          </div>
-          <button class="btn btn-primary" onclick="showView('calendario')" style="white-space: nowrap;">Vai al Calendario →</button>
+      <!-- BOTTONE AGGIUNGI A CALENDARIO — appare dopo aver approvato -->
+      <div id="go-to-calendar-btn" style="display:none; margin-top: 24px;">
+        <div class="card" style="background: rgba(200,169,110,0.08); border-color: rgba(200,169,110,0.4); text-align: center; padding: 24px;">
+          <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:16px; color:var(--gold); margin-bottom:8px;">✅ Post approvati!</div>
+          <div style="font-size:13px; color:var(--gray-light); margin-bottom:16px;">I post sono nel calendario. Genera il piano AI per assegnare le date.</div>
+          <button class="btn btn-primary" onclick="showView('calendario')" style="padding: 14px 32px; font-size: 14px;">📅 Vai al Calendario →</button>
         </div>
       </div>
     </div>
@@ -1258,6 +1250,78 @@
 
 </main>
 
+<!-- MODAL CALENDARIO — aggiungi post su data -->
+<div class="modal-overlay" id="cal-add-modal">
+  <div class="modal" style="max-width: 560px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Aggiungi post</div>
+        <div id="cal-add-date-label" style="font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); margin-top:4px;"></div>
+      </div>
+      <button class="btn btn-ghost" onclick="closeCalModal()">✕</button>
+    </div>
+
+    <!-- Tab selector -->
+    <div style="display:flex; gap:8px; margin-bottom:20px;">
+      <button id="tab-manual" onclick="switchCalTab('manual')" style="flex:1; padding:10px; border-radius:6px; border:1px solid var(--gold); background:var(--gold); color:var(--black); font-family:'Syne',sans-serif; font-weight:600; font-size:12px; cursor:pointer;">✍️ Manuale</button>
+      <button id="tab-ai" onclick="switchCalTab('ai')" style="flex:1; padding:10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--gray-light); font-family:'Syne',sans-serif; font-weight:600; font-size:12px; cursor:pointer;">✦ Genera con AI</button>
+      <button id="tab-existing" onclick="switchCalTab('existing')" style="flex:1; padding:10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--gray-light); font-family:'Syne',sans-serif; font-weight:600; font-size:12px; cursor:pointer;">📋 Da bozze</button>
+    </div>
+
+    <!-- Tab: Manuale -->
+    <div id="cal-tab-manual">
+      <div class="kb-field">
+        <label>Testo del post</label>
+        <textarea id="cal-manual-text" class="post-editor" placeholder="Scrivi il testo del post..." style="min-height:180px;"></textarea>
+        <div class="char-count" id="cal-manual-char">0 / 1300</div>
+      </div>
+      <div class="kb-field">
+        <label>Orario</label>
+        <input type="time" id="cal-manual-time" value="10:00" style="max-width:120px;">
+      </div>
+      <button class="btn btn-primary" onclick="saveCalPost('manual')" style="width:100%; justify-content:center; padding:12px; margin-top:8px;">✓ Aggiungi al Calendario</button>
+    </div>
+
+    <!-- Tab: AI -->
+    <div id="cal-tab-ai" style="display:none;">
+      <div class="kb-field">
+        <label>Tipo di contenuto (opzionale)</label>
+        <select id="cal-ai-topic">
+          <option value="">— Automatico per questa data —</option>
+          <option value="Pensiero sul futuro della musica indipendente">Pensiero sull'industria</option>
+          <option value="Presentazione di un'etichetta o artista">Presentazione etichetta/artista</option>
+          <option value="Behind the scenes — come lavora HOM">Behind the scenes HOM</option>
+          <option value="Riflessione sul modello ecosistema vs major">Business model</option>
+          <option value="Cultura e valori — indipendenza e libertà artistica">Cultura e valori</option>
+          <option value="Annuncio uscita discografica o progetto">Uscita discografica</option>
+        </select>
+      </div>
+      <div class="kb-field">
+        <label>Orario</label>
+        <input type="time" id="cal-ai-time" value="10:00" style="max-width:120px;">
+      </div>
+      <div id="cal-ai-result" style="display:none; margin-bottom:16px;">
+        <label style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--gray); display:block; margin-bottom:6px;">Post generato — modifica se vuoi</label>
+        <textarea id="cal-ai-text" class="post-editor" style="min-height:160px;"></textarea>
+        <div class="char-count" id="cal-ai-char">0 / 1300</div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn btn-outline" onclick="generateCalPost()" id="cal-ai-gen-btn" style="flex:1; justify-content:center; padding:12px;">✦ Genera con AI</button>
+        <button class="btn btn-primary" onclick="saveCalPost('ai')" id="cal-ai-save-btn" style="flex:1; justify-content:center; padding:12px; display:none;">✓ Aggiungi al Calendario</button>
+      </div>
+    </div>
+
+    <!-- Tab: Da bozze/pending -->
+    <div id="cal-tab-existing" style="display:none;">
+      <div class="kb-field">
+        <label>Orario</label>
+        <input type="time" id="cal-existing-time" value="10:00" style="max-width:120px; margin-bottom:16px;">
+      </div>
+      <div id="cal-existing-list" style="max-height:280px; overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL REVIEW POST -->
 <div class="modal-overlay" id="review-modal">
   <div class="modal">
@@ -1484,6 +1548,10 @@ async function generatePosts() {
 function renderProposals(proposals) {
   var list = document.getElementById('proposals-list');
   list.innerHTML = '';
+  if (!proposals.length) {
+    document.getElementById('gen-proposals').style.display = 'none';
+    return;
+  }
   proposals.forEach(function(p, i) {
     var charCount = p.text.length;
     var charColor = charCount > 1300 ? 'var(--red)' : charCount > 1000 ? 'var(--gold)' : 'var(--green)';
@@ -1492,14 +1560,13 @@ function renderProposals(proposals) {
     card.id = 'proposal-' + i;
     card.innerHTML =
       '<div style="display: flex; align-items: flex-start; gap: 12px;">' +
-        '<input type="checkbox" id="check-' + i + '" style="margin-top: 4px; width: 16px; height: 16px; cursor: pointer; accent-color: var(--gold);">' +
         '<div style="flex: 1;">' +
           '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">' +
             '<div style="font-family: DM Mono, monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold);">' + (p.topic || 'Post ' + (i+1)) + '</div>' +
             '<div style="font-size: 11px; font-family: DM Mono, monospace; color: ' + charColor + ';">' + charCount + ' / 1300</div>' +
           '</div>' +
           '<div style="font-size: 13px; line-height: 1.6; color: var(--white); white-space: pre-wrap; margin-bottom: 12px;">' + p.text + '</div>' +
-          '<div style="background: #1b1f23; border-radius: 8px; padding: 14px; border: 1px solid #333;">' +
+          '<div style="background: #1b1f23; border-radius: 8px; padding: 14px; border: 1px solid #333; margin-bottom: 12px;">' +
             '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">' +
               '<div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #c8a96e, #8b6a30); display: flex; align-items: center; justify-content: center; font-family: Syne, sans-serif; font-weight: 800; font-size: 14px; color: #0a0a0a;">H</div>' +
               '<div><div style="font-weight: 600; font-size: 13px; color: #e8e6e3;">House of Music</div><div style="font-size: 11px; color: #9b9b9b;">Independent Music Ecosystem · Milano</div></div>' +
@@ -1511,11 +1578,37 @@ function renderProposals(proposals) {
               '<span style="font-size: 11px; color: #9b9b9b;">↗ Condividi</span>' +
             '</div>' +
           '</div>' +
+          '<div style="display: flex; gap: 8px;">' +
+            '<button onclick="approveSingle(' + i + ')" style="flex:1; background:var(--green); color:white; border:none; padding:10px; border-radius:6px; cursor:pointer; font-family:Syne,sans-serif; font-weight:600; font-size:13px;">✓ Approva</button>' +
+            '<button onclick="deleteProposal(' + i + ')" style="background:none; border:1px solid var(--border); color:var(--gray); padding:10px 14px; border-radius:6px; cursor:pointer; font-size:13px;">🗑️</button>' +
+          '</div>' +
         '</div>' +
-        '<button onclick="deleteProposal(' + i + ')" style="background: none; border: none; color: var(--gray); cursor: pointer; font-size: 18px; padding: 4px; line-height: 1; flex-shrink: 0;" title="Elimina">🗑️</button>' +
       '</div>';
     list.appendChild(card);
   });
+}
+
+function approveSingle(index) {
+  if (!window._proposals || !window._proposals[index]) return;
+  var p = window._proposals[index];
+  posts.unshift({
+    id: Date.now() + Math.random(),
+    text: p.text,
+    status: 'pending',
+    created: new Date().toISOString(),
+    scheduled: null,
+    topic: p.topic || 'AI'
+  });
+  savePosts();
+  renderDashboard();
+  updateStats();
+  // Rimuovi dalla lista
+  window._proposals.splice(index, 1);
+  renderProposals(window._proposals);
+  // Mostra bottone calendario se almeno uno approvato
+  var calBtn = document.getElementById('go-to-calendar-btn');
+  if (calBtn) calBtn.style.display = 'block';
+  showToast('Post approvato!', 'success');
 }
 
 function deleteProposal(index) {
@@ -1528,43 +1621,12 @@ function deleteProposal(index) {
 }
 
 function selectAllProposals() {
-  var checkboxes = document.querySelectorAll('[id^="check-"]');
-  var allChecked = Array.from(checkboxes).every(function(c) { return c.checked; });
-  checkboxes.forEach(function(c) { c.checked = !allChecked; });
+  // Non più necessaria con il nuovo flusso — mantenuta per compatibilità
 }
 
 function approveSelected() {
-  if (!window._proposals) return;
-  var selected = [];
-  window._proposals.forEach(function(p, i) {
-    var cb = document.getElementById('check-' + i);
-    if (cb && cb.checked) selected.push(p);
-  });
-  if (selected.length === 0) { showToast('Seleziona almeno un post', 'error'); return; }
-
-  var savedPosts = JSON.parse(localStorage.getItem('hom_posts') || '[]');
-  selected.forEach(function(p) {
-    savedPosts.unshift({
-      id: Date.now() + Math.random(),
-      text: p.text,
-      status: 'pending',
-      created: new Date().toISOString(),
-      scheduled: null,
-      topic: p.topic || 'AI'
-    });
-  });
-  localStorage.setItem('hom_posts', JSON.stringify(savedPosts));
-  savePosts();
-  renderDashboard();
-  updateStats();
-  showToast('✓ ' + selected.length + ' post approvati e salvati!', 'success');
-  // Rimuovi i selezionati dalla lista
-  window._proposals = window._proposals.filter(function(p, i) {
-    var cb = document.getElementById('check-' + i);
-    return !(cb && cb.checked);
-  });
-  renderProposals(window._proposals);
-  if (window._proposals.length === 0) document.getElementById('gen-proposals').style.display = 'none';
+  // Non più necessaria con il nuovo flusso — mantenuta per compatibilità
+  showToast('Usa il bottone Approva su ogni post', 'success');
 }
 
 // ===== GENERATE POST (mantieni per compatibilità) =====
@@ -1872,12 +1934,144 @@ function renderMonthPostsList(monthPosts, label) {
 }
 
 function showDayPosts(dateStr) {
-  const dayPosts = posts.filter(p => (p.publishedAt || p.created || '').startsWith(dateStr));
-  const el = document.getElementById('cal-day-posts');
-  if (!dayPosts.length) { el.innerHTML = ''; return; }
-  el.innerHTML = `
-    <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray); margin-bottom: 12px;">${dateStr}</div>
-    ${dayPosts.map(p => renderPostCard(p)).join('')}`;
+  var dayPosts = posts.filter(function(p) {
+    var pd = (p.scheduledDate || p.publishedAt || p.created || '').substring(0,10);
+    return pd === dateStr;
+  });
+  var el = document.getElementById('cal-day-posts');
+  if (dayPosts.length) {
+    var d = new Date(dateStr + 'T12:00:00');
+    var label = d.toLocaleDateString('it-IT', { weekday:'long', day:'2-digit', month:'long' });
+    el.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray);margin-bottom:12px;">' + label + '</div>' +
+      dayPosts.map(function(p) { return renderPostCard(p); }).join('');
+  } else {
+    el.innerHTML = '';
+  }
+  // Apri modal per aggiungere
+  openCalModal(dateStr);
+}
+
+var _calModalDate = '';
+
+function openCalModal(dateStr) {
+  _calModalDate = dateStr;
+  var d = new Date(dateStr + 'T12:00:00');
+  var label = d.toLocaleDateString('it-IT', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  document.getElementById('cal-add-date-label').textContent = '📅 ' + label;
+  // Reset
+  switchCalTab('manual');
+  document.getElementById('cal-manual-text').value = '';
+  document.getElementById('cal-manual-char').textContent = '0 / 1300';
+  document.getElementById('cal-ai-result').style.display = 'none';
+  document.getElementById('cal-ai-save-btn').style.display = 'none';
+  document.getElementById('cal-ai-gen-btn').style.display = '';
+  document.getElementById('cal-add-modal').classList.add('open');
+}
+
+function closeCalModal() {
+  document.getElementById('cal-add-modal').classList.remove('open');
+}
+
+function switchCalTab(tab) {
+  ['manual','ai','existing'].forEach(function(t) {
+    document.getElementById('cal-tab-' + t).style.display = t === tab ? 'block' : 'none';
+    var btn = document.getElementById('tab-' + t);
+    if (btn) {
+      btn.style.background = t === tab ? 'var(--gold)' : 'transparent';
+      btn.style.color = t === tab ? 'var(--black)' : 'var(--gray-light)';
+      btn.style.borderColor = t === tab ? 'var(--gold)' : 'var(--border)';
+    }
+  });
+  // Popola lista esistenti se tab existing
+  if (tab === 'existing') {
+    var available = posts.filter(function(p) { return p.status === 'pending' || p.status === 'draft'; });
+    var listEl = document.getElementById('cal-existing-list');
+    if (!available.length) {
+      listEl.innerHTML = '<div style="color:var(--gray);font-size:13px;font-style:italic;">Nessun post in attesa o bozza disponibile</div>';
+    } else {
+      listEl.innerHTML = available.map(function(p) {
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;cursor:pointer;" onclick="pickExistingPost(\'' + p.id + '\')">' +
+          '<div style="flex:1">' +
+            '<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--gold);margin-bottom:3px;">' + (p.status === 'pending' ? 'In attesa' : 'Bozza') + ' · ' + (p.topic || '') + '</div>' +
+            '<div style="font-size:13px;color:var(--white);">' + (p.text || '').substring(0,80) + '...</div>' +
+          '</div>' +
+          '<div style="color:var(--gold);font-size:18px;">→</div>' +
+        '</div>';
+      }).join('');
+    }
+  }
+}
+
+function pickExistingPost(postId) {
+  var time = document.getElementById('cal-existing-time').value || '10:00';
+  var idx = posts.findIndex(function(p) { return String(p.id) === String(postId); });
+  if (idx === -1) return;
+  posts[idx].scheduledDate = _calModalDate + 'T' + time + ':00';
+  savePosts();
+  renderCalendar();
+  closeCalModal();
+  showToast('Post aggiunto al calendario!', 'success');
+}
+
+async function generateCalPost() {
+  var apiKey = localStorage.getItem('hom_api_key');
+  if (!apiKey) { showToast('Configura la API Key in Impostazioni', 'error'); return; }
+  var btn = document.getElementById('cal-ai-gen-btn');
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+  btn.disabled = true;
+  var topic = document.getElementById('cal-ai-topic').value;
+  var kb = localStorage.getItem('hom_knowledge') ? JSON.parse(localStorage.getItem('hom_knowledge')) : {};
+  var d = new Date(_calModalDate + 'T12:00:00');
+  var dateLabel = d.toLocaleDateString('it-IT', { weekday:'long', day:'2-digit', month:'long' });
+  var prompt = 'Genera un post LinkedIn per House of Music da pubblicare ' + dateLabel + '.' +
+    (topic ? ' Tema: ' + topic + '.' : '') +
+    ' Tono: visionario e culturale. Max 1300 caratteri. Solo il testo del post, nient\'altro.';
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, system: buildSystemPrompt(kb), messages: [{ role: 'user', content: prompt }] })
+    });
+    var data = await res.json();
+    var text = data.content[0].text.trim();
+    document.getElementById('cal-ai-text').value = text;
+    document.getElementById('cal-ai-char').textContent = text.length + ' / 1300';
+    document.getElementById('cal-ai-result').style.display = 'block';
+    document.getElementById('cal-ai-save-btn').style.display = '';
+    showToast('Post generato!', 'success');
+  } catch(e) {
+    showToast('Errore generazione', 'error');
+  }
+  btn.innerHTML = '✦ Rigenera';
+  btn.disabled = false;
+}
+
+function saveCalPost(type) {
+  var text = '';
+  var time = '10:00';
+  if (type === 'manual') {
+    text = document.getElementById('cal-manual-text').value.trim();
+    time = document.getElementById('cal-manual-time').value || '10:00';
+  } else if (type === 'ai') {
+    text = document.getElementById('cal-ai-text').value.trim();
+    time = document.getElementById('cal-ai-time').value || '10:00';
+  }
+  if (!text) { showToast('Inserisci il testo del post', 'error'); return; }
+  var newPost = {
+    id: Date.now(),
+    text: text,
+    status: 'pending',
+    created: new Date().toISOString(),
+    scheduledDate: _calModalDate + 'T' + time + ':00',
+    topic: type === 'ai' ? (document.getElementById('cal-ai-topic').value || 'AI') : 'Manuale'
+  };
+  posts.unshift(newPost);
+  savePosts();
+  renderCalendar();
+  updateStats();
+  closeCalModal();
+  showToast('Post aggiunto al calendario!', 'success');
+}
 }
 
 function changeMonth(dir) {
@@ -2011,9 +2205,20 @@ function showToast(msg, type = 'success') {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// ===== CLOSE MODAL ON OUTSIDE CLICK =====
+// ===== CLOSE MODALS ON OUTSIDE CLICK =====
 document.getElementById('review-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
+});
+document.getElementById('cal-add-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeCalModal();
+});
+
+// Contatore caratteri modal calendario
+document.getElementById('cal-manual-text').addEventListener('input', function() {
+  var len = this.value.length;
+  var el = document.getElementById('cal-manual-char');
+  el.textContent = len + ' / 1300';
+  el.classList.toggle('over', len > 1300);
 });
 
 // ===== UPDATE APP (legacy - sostituita dalla chat integrata) =====
@@ -2527,6 +2732,7 @@ function copyText(elementId) {
 window.showView = showView;
 window.generatePost = generatePost;
 window.generatePosts = generatePosts;
+window.approveSingle = approveSingle;
 window.deleteProposal = deleteProposal;
 window.selectAllProposals = selectAllProposals;
 window.approveSelected = approveSelected;
@@ -2541,6 +2747,12 @@ window.confirmDelete = confirmDelete;
 window.filterPosts = filterPosts;
 window.changeMonth = changeMonth;
 window.showDayPosts = showDayPosts;
+window.openCalModal = openCalModal;
+window.closeCalModal = closeCalModal;
+window.switchCalTab = switchCalTab;
+window.pickExistingPost = pickExistingPost;
+window.generateCalPost = generateCalPost;
+window.saveCalPost = saveCalPost;
 window.saveKnowledge = saveKnowledge;
 window.exportKnowledge = exportKnowledge;
 window.toggleKbSaved = toggleKbSaved;
