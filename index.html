@@ -813,12 +813,12 @@
         <div class="stat-value gold" id="stat-pending">0</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Pubblicati</div>
-        <div class="stat-value" id="stat-published">0</div>
+        <div class="stat-label">Pianificati</div>
+        <div class="stat-value" id="stat-scheduled">0</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Bozze</div>
-        <div class="stat-value" id="stat-drafts">0</div>
+        <div class="stat-label">Su LinkedIn</div>
+        <div class="stat-value" id="stat-published">0</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Questo mese</div>
@@ -826,16 +826,26 @@
       </div>
     </div>
 
-    <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">Post in approvazione</div>
-      <button class="btn btn-ghost" onclick="showView('genera')" style="font-size: 12px; padding: 6px 12px;">+ Nuovo post</button>
+    <!-- Da pianificare -->
+    <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">Da pianificare</div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-ghost" onclick="showView('genera')" style="font-size: 12px; padding: 6px 12px;">+ Genera post</button>
+        <button class="btn btn-outline" onclick="showView('calendario')" style="font-size: 12px; padding: 6px 12px;">📅 Piano Editoriale →</button>
+      </div>
     </div>
-
     <div id="pending-list"></div>
 
-    <div style="margin-top: 32px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">Ultimi pubblicati</div>
+    <!-- Pianificati -->
+    <div style="margin-top: 32px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">Prossimi nel piano</div>
       <div id="last-published-info" style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gray);"></div>
+    </div>
+    <div id="scheduled-list"></div>
+
+    <!-- Ultimi pubblicati -->
+    <div style="margin-top: 32px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">Ultimi su LinkedIn</div>
     </div>
     <div id="published-list"></div>
   </div>
@@ -1755,52 +1765,66 @@ function deletePost() {
 
 // ===== RENDER =====
 function renderDashboard() {
-  var pending = posts.filter(function(p) { return p.status === 'pending'; });
+  var pending = posts.filter(function(p) { return p.status === 'pending' && !p.scheduledDate; });
+  var scheduled = posts.filter(function(p) { return p.status === 'pending' && p.scheduledDate; })
+    .sort(function(a,b) { return a.scheduledDate.localeCompare(b.scheduledDate); });
   var published = posts.filter(function(p) { return p.status === 'published'; });
-  var lastPublished = published[0];
 
   document.getElementById('pending-list').innerHTML = pending.length
     ? pending.map(function(p) { return renderPostCard(p); }).join('')
-    : '<div style="color: var(--gray); font-size: 13px; padding: 20px 0; font-style: italic;">Nessun post in attesa — <span style="color: var(--gold); cursor: pointer;" onclick="showView(\'genera\')">genera un nuovo post →</span></div>';
+    : '<div style="color: var(--gray); font-size: 13px; padding: 16px 0; font-style: italic;">Nessun post da pianificare — <span style="color: var(--gold); cursor: pointer;" onclick="showView(\'genera\')">genera nuovi post →</span></div>';
 
-  document.getElementById('published-list').innerHTML = published.slice(0, 3).length
-    ? published.slice(0, 3).map(function(p) { return renderPostCard(p); }).join('')
-    : '<div style="color: var(--gray); font-size: 13px; padding: 20px 0; font-style: italic;">Nessun post pubblicato ancora</div>';
+  var scheduledEl = document.getElementById('scheduled-list');
+  if (scheduledEl) {
+    scheduledEl.innerHTML = scheduled.length
+      ? scheduled.slice(0, 3).map(function(p) { return renderPostCard(p); }).join('')
+      : '<div style="color: var(--gray); font-size: 13px; padding: 16px 0; font-style: italic;">Nessun post pianificato — <span style="color: var(--gold); cursor: pointer;" onclick="showView(\'calendario\')">vai al Piano Editoriale →</span></div>';
+  }
+
+  document.getElementById('published-list').innerHTML = published.slice(0, 2).length
+    ? published.slice(0, 2).map(function(p) { return renderPostCard(p); }).join('')
+    : '<div style="color: var(--gray); font-size: 13px; padding: 16px 0; font-style: italic;">Nessun post pubblicato ancora</div>';
 
   document.getElementById('pending-badge').textContent = pending.length;
   document.getElementById('pending-badge').style.display = pending.length ? 'inline' : 'none';
 
-  // Aggiorna last published info
   var lastEl = document.getElementById('last-published-info');
-  if (lastEl) {
-    if (lastPublished) {
-      var d = new Date(lastPublished.publishedAt || lastPublished.created);
-      var diff = Math.floor((new Date() - d) / 86400000);
-      var label = diff === 0 ? 'oggi' : diff === 1 ? 'ieri' : diff + ' giorni fa';
-      lastEl.textContent = 'Ultimo post: ' + label;
-    } else {
-      lastEl.textContent = 'Nessun post pubblicato';
-    }
+  if (lastEl && published[0]) {
+    var d = new Date(published[0].publishedAt || published[0].created);
+    var diff = Math.floor((new Date() - d) / 86400000);
+    lastEl.textContent = 'Ultimo: ' + (diff === 0 ? 'oggi' : diff === 1 ? 'ieri' : diff + ' giorni fa');
   }
 }
 
 function renderPostCard(post) {
-  var date = new Date(post.created).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
-  var preview = post.text.substring(0, 180) + (post.text.length > 180 ? '...' : '');
+  var isScheduled = post.status === 'pending' && post.scheduledDate;
+  var isPending = post.status === 'pending' && !post.scheduledDate;
+  var isPublished = post.status === 'published';
   var isStarred = post.starred ? true : false;
-  return '<div class="post-card ' + post.status + '">' +
+
+  var dateField = post.scheduledDate || post.publishedAt || post.created;
+  var date = new Date(dateField).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+  var timeStr = post.scheduledDate ? ' · ' + new Date(post.scheduledDate).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}) : '';
+  var preview = (post.text || '').substring(0, 180) + ((post.text || '').length > 180 ? '...' : '');
+  var statusLabel = isPending ? 'Da pianificare' : isScheduled ? 'Pianificato' : isPublished ? 'Su LinkedIn' : 'Bozza';
+  var statusClass = isScheduled ? 'pending' : post.status;
+
+  var buttons = '<button class="btn btn-outline" onclick="openReview(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">Revisiona</button>';
+  if (isScheduled) {
+    buttons += '<button class="btn btn-success" onclick="quickPublish(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">✓ Su LinkedIn</button>';
+    buttons += '<button class="btn btn-ghost" onclick="removeFromPlan(' + post.id + ')" style="font-size: 12px; color: var(--gray-light);">Rimuovi dal piano</button>';
+  }
+  buttons += '<button class="btn btn-ghost" onclick="confirmDelete(' + post.id + ')" style="font-size: 12px; color: var(--red);">Elimina</button>';
+
+  return '<div class="post-card ' + statusClass + '">' +
     '<div class="post-meta">' +
-      '<span class="post-status ' + post.status + '">' + (post.status === 'pending' ? 'Da pianificare' : post.status === 'published' ? 'Su LinkedIn' : 'Bozza') + '</span>' +
-      '<span class="post-date">' + date + '</span>' +
+      '<span class="post-status ' + statusClass + '">' + statusLabel + '</span>' +
+      '<span class="post-date">' + date + timeStr + '</span>' +
       '<span class="post-topic">' + (post.topic || '') + '</span>' +
-      '<button onclick="toggleStar(' + post.id + ')" style="margin-left:auto; background:none; border:none; cursor:pointer; font-size:18px; padding:2px 6px; line-height:1; color:' + (isStarred ? 'var(--gold)' : 'var(--gray)') + '; transition: color 0.2s, transform 0.15s;" title="' + (isStarred ? 'Rimuovi dai preferiti' : 'Segna come preferito') + '">✦</button>' +
+      '<button onclick="toggleStar(' + post.id + ')" style="margin-left:auto; background:none; border:none; cursor:pointer; font-size:18px; padding:2px 6px; color:' + (isStarred ? 'var(--gold)' : 'var(--gray)') + ';">✦</button>' +
     '</div>' +
     '<div class="post-text">' + preview + '</div>' +
-    '<div class="post-actions">' +
-      '<button class="btn btn-outline" onclick="openReview(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">Revisiona</button>' +
-      (post.status === 'pending' ? '<button class="btn btn-success" onclick="quickPublish(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">✓ Pubblicato su LinkedIn</button>' : '') +
-      '<button class="btn btn-ghost" onclick="confirmDelete(' + post.id + ')" style="font-size: 12px; color: var(--red);">Elimina</button>' +
-    '</div>' +
+    '<div class="post-actions">' + buttons + '</div>' +
   '</div>';
 }
 
@@ -1840,14 +1864,29 @@ function confirmDelete(id) {
   }
 }
 
+function removeFromPlan(id) {
+  var idx = posts.findIndex(function(p) { return String(p.id) === String(id); });
+  if (idx === -1) return;
+  posts[idx].scheduledDate = null;
+  savePosts();
+  renderDashboard();
+  renderCalendar();
+  showToast('Post rimosso dal piano — torna in "Da pianificare"', 'success');
+}
+
 function updateStats() {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  document.getElementById('stat-pending').textContent = posts.filter(p => p.status === 'pending').length;
-  document.getElementById('stat-published').textContent = posts.filter(p => p.status === 'published').length;
-  document.getElementById('stat-drafts').textContent = posts.filter(p => p.status === 'draft').length;
-  document.getElementById('stat-month').textContent = posts.filter(p => p.status === 'published' && new Date(p.publishedAt || p.created) >= monthStart).length;
-  document.getElementById('stat-pending').textContent = posts.filter(p => p.status === 'pending').length;
+  var now = new Date();
+  var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  var pending = posts.filter(function(p) { return p.status === 'pending' && !p.scheduledDate; });
+  var scheduled = posts.filter(function(p) { return p.status === 'pending' && p.scheduledDate; });
+  var published = posts.filter(function(p) { return p.status === 'published'; });
+  var thisMonth = posts.filter(function(p) { return p.status === 'published' && new Date(p.publishedAt || p.created) >= monthStart; });
+
+  document.getElementById('stat-pending').textContent = pending.length;
+  var schedEl = document.getElementById('stat-scheduled');
+  if (schedEl) schedEl.textContent = scheduled.length;
+  document.getElementById('stat-published').textContent = published.length;
+  document.getElementById('stat-month').textContent = thisMonth.length;
 }
 
 // ===== STORICO =====
@@ -2797,6 +2836,7 @@ window.publishPost = publishPost;
 window.deletePost = deletePost;
 window.quickPublish = quickPublish;
 window.confirmDelete = confirmDelete;
+window.removeFromPlan = removeFromPlan;
 window.toggleStar = toggleStar;
 window.filterPosts = filterPosts;
 window.changeMonth = changeMonth;
