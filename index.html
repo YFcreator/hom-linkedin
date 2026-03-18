@@ -311,6 +311,7 @@
   }
 
   .post-status.pending { background: rgba(200,169,110,0.15); color: var(--gold); }
+  .post-status.scheduled { background: rgba(100,149,237,0.15); color: #6495ed; }
   .post-status.published { background: rgba(58,124,90,0.15); color: #5aab7a; }
   .post-status.draft { background: rgba(107,101,96,0.15); color: var(--gray-light); }
 
@@ -750,7 +751,11 @@
   </div>
 
   <span class="nav-section">Contenuti</span>
-  <div class="nav-item active" onclick="showView('dashboard')">
+  <div class="nav-item active" onclick="showView('calendario')">
+    <span class="nav-icon">📅</span>
+    <span>Piano Editoriale</span>
+  </div>
+  <div class="nav-item" onclick="showView('dashboard')">
     <span class="nav-icon">🏠</span>
     <span>Dashboard</span>
     <span class="nav-badge" id="pending-badge">0</span>
@@ -758,10 +763,6 @@
   <div class="nav-item" onclick="showView('genera')">
     <span class="nav-icon">✍️</span>
     <span>Genera Post</span>
-  </div>
-  <div class="nav-item" onclick="showView('calendario')">
-    <span class="nav-icon">📅</span>
-    <span>Piano Editoriale</span>
   </div>
   <div class="nav-item" onclick="showView('storico')">
     <span class="nav-icon">📋</span>
@@ -798,21 +799,21 @@
 <main class="main">
 
   <!-- DASHBOARD -->
-  <div class="view active" id="view-dashboard">
+  <div class="view" id="view-dashboard">
     <div class="page-header">
       <div>
         <div class="page-title">Dashboard</div>
-        <div class="page-sub">Gestisci i tuoi post LinkedIn per House of Music</div>
+        <div class="page-sub">Panoramica dei tuoi post LinkedIn</div>
       </div>
-      <button class="btn btn-primary" onclick="showView('genera')">✦ Genera Post</button>
+      <button class="btn btn-primary" onclick="showView('genera')">✍️ Genera Post</button>
     </div>
 
     <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">Da pianificare</div>
+      <div class="stat-card" style="cursor:pointer;" onclick="showView('genera')">
+        <div class="stat-label">Approvati</div>
         <div class="stat-value gold" id="stat-pending">0</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" style="cursor:pointer;" onclick="showView('calendario')">
         <div class="stat-label">Pianificati</div>
         <div class="stat-value" id="stat-scheduled">0</div>
       </div>
@@ -826,26 +827,24 @@
       </div>
     </div>
 
-    <!-- Da pianificare -->
+    <!-- Approvati — in attesa di essere pianificati -->
     <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">Da pianificare</div>
-      <div style="display: flex; gap: 8px;">
-        <button class="btn btn-ghost" onclick="showView('genera')" style="font-size: 12px; padding: 6px 12px;">+ Genera post</button>
-        <button class="btn btn-outline" onclick="showView('calendario')" style="font-size: 12px; padding: 6px 12px;">📅 Piano Editoriale →</button>
-      </div>
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">✓ Approvati — da pianificare</div>
+      <button class="btn btn-ghost" onclick="showView('genera')" style="font-size: 12px; padding: 6px 12px;">+ Genera altri</button>
     </div>
     <div id="pending-list"></div>
 
     <!-- Pianificati -->
     <div style="margin-top: 32px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">Prossimi nel piano</div>
-      <div id="last-published-info" style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gray);"></div>
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">📅 Prossimi nel piano</div>
+      <button class="btn btn-ghost" onclick="showView('calendario')" style="font-size: 12px; padding: 6px 12px;">Vai al Piano →</button>
     </div>
     <div id="scheduled-list"></div>
 
-    <!-- Ultimi pubblicati -->
+    <!-- Pubblicati -->
     <div style="margin-top: 32px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">Ultimi su LinkedIn</div>
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">✅ Ultimi su LinkedIn</div>
+      <div id="last-published-info" style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gray);"></div>
     </div>
     <div id="published-list"></div>
   </div>
@@ -932,7 +931,7 @@
   </div>
 
   <!-- CALENDARIO -->
-  <div class="view" id="view-calendario">
+  <div class="view active" id="view-calendario">
     <div class="page-header">
       <div>
         <div class="page-title">Piano Editoriale</div>
@@ -1417,7 +1416,9 @@ async function init() {
   renderCalendar();
   renderStorico();
   updateStats();
-  showToast('✓ Sincronizzato', 'success');
+  // Apri Piano Editoriale come vista principale
+  showView('calendario');
+  showToast('✓ Pronto', 'success');
 }
 
 // ===== NAVIGATION =====
@@ -1556,10 +1557,10 @@ function renderProposals(proposals) {
     list.innerHTML =
       '<div style="text-align:center; padding: 40px 20px;">' +
         '<div style="font-size: 48px; margin-bottom: 16px;">✦</div>' +
-        '<div style="font-family:\'Syne\',sans-serif; font-weight:700; font-size:20px; color:var(--white); margin-bottom:8px;">Ottimo lavoro!</div>' +
+        '<div style="font-family:\'Syne\',sans-serif; font-weight:700; font-size:20px; color:var(--white); margin-bottom:8px;">Post approvati!</div>' +
         '<div style="font-size:14px; color:var(--gray-light); margin-bottom:24px;">' +
           (approvedCount > 0
-            ? approvedCount + ' post approvati e pronti per il Piano Editoriale.'
+            ? approvedCount + ' post approvati. Ora pianifica quando pubblicarli.'
             : 'Post approvati e salvati.') +
         '</div>' +
         '<div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">' +
@@ -1806,8 +1807,8 @@ function renderPostCard(post) {
   var date = new Date(dateField).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
   var timeStr = post.scheduledDate ? ' · ' + new Date(post.scheduledDate).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}) : '';
   var preview = (post.text || '').substring(0, 180) + ((post.text || '').length > 180 ? '...' : '');
-  var statusLabel = isPending ? 'Da pianificare' : isScheduled ? 'Pianificato' : isPublished ? 'Su LinkedIn' : 'Bozza';
-  var statusClass = isScheduled ? 'pending' : post.status;
+  var statusLabel = isPending ? 'Approvato' : isScheduled ? 'Pianificato' : isPublished ? 'Su LinkedIn' : 'Bozza';
+  var statusClass = isPending ? 'pending' : isScheduled ? 'scheduled' : post.status;
 
   var buttons = '<button class="btn btn-outline" onclick="openReview(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">Revisiona</button>';
   if (isScheduled) {
