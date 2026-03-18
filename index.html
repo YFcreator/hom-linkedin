@@ -761,7 +761,7 @@
   </div>
   <div class="nav-item" onclick="showView('calendario')">
     <span class="nav-icon">📅</span>
-    <span>Calendario</span>
+    <span>Piano Editoriale</span>
   </div>
   <div class="nav-item" onclick="showView('storico')">
     <span class="nav-icon">📋</span>
@@ -809,7 +809,7 @@
 
     <div class="stats-row">
       <div class="stat-card">
-        <div class="stat-label">In attesa</div>
+        <div class="stat-label">Da pianificare</div>
         <div class="stat-value gold" id="stat-pending">0</div>
       </div>
       <div class="stat-card">
@@ -914,8 +914,8 @@
       <div id="go-to-calendar-btn" style="display:none; margin-top: 24px;">
         <div class="card" style="background: rgba(200,169,110,0.08); border-color: rgba(200,169,110,0.4); text-align: center; padding: 24px;">
           <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:16px; color:var(--gold); margin-bottom:8px;">✅ Post approvati!</div>
-          <div style="font-size:13px; color:var(--gray-light); margin-bottom:16px;">I post sono nel calendario. Genera il piano AI per assegnare le date.</div>
-          <button class="btn btn-primary" onclick="showView('calendario')" style="padding: 14px 32px; font-size: 14px;">📅 Vai al Calendario →</button>
+          <div style="font-size:13px; color:var(--gray-light); margin-bottom:16px;">I post sono pronti. Vai al Piano Editoriale per assegnare date e orari.</div>
+          <button class="btn btn-primary" onclick="showView('calendario')" style="padding: 14px 32px; font-size: 14px;">📅 Crea Piano Editoriale →</button>
         </div>
       </div>
     </div>
@@ -925,10 +925,10 @@
   <div class="view" id="view-calendario">
     <div class="page-header">
       <div>
-        <div class="page-title">Calendario</div>
-        <div class="page-sub">Post pianificati e pubblicati nel mese</div>
+        <div class="page-title">Piano Editoriale</div>
+        <div class="page-sub">Pianifica i tuoi post con AI</div>
       </div>
-      <button class="btn btn-primary" onclick="generateCalendarPlan()" id="gen-plan-btn">✦ Genera Piano AI</button>
+      <button class="btn btn-primary" onclick="generateCalendarPlan()" id="gen-plan-btn">✦ Genera Piano AI →</button>
     </div>
 
     <!-- Piano AI proposta -->
@@ -943,6 +943,9 @@
       </div>
     </div>
 
+    <!-- Lista post del mese SOPRA la griglia -->
+    <div id="cal-month-posts" style="margin-bottom: 24px;"></div>
+
     <!-- Navigazione mese + vista lista -->
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
@@ -956,8 +959,6 @@
       <div class="calendar-grid" id="cal-grid"></div>
     </div>
 
-    <!-- Lista post del mese sotto la griglia -->
-    <div id="cal-month-posts" style="margin-top: 24px;"></div>
     <div id="cal-day-posts" style="margin-top: 16px;"></div>
   </div>
 
@@ -1251,6 +1252,9 @@
       <button class="btn btn-ghost" onclick="closeCalModal()">✕</button>
     </div>
 
+    <!-- Post già presenti su questa data -->
+    <div id="cal-modal-existing" style="display:none; margin-bottom:16px;"></div>
+
     <!-- Tab selector -->
     <div style="display:flex; gap:8px; margin-bottom:20px;">
       <button id="tab-manual" onclick="switchCalTab('manual')" style="flex:1; padding:10px; border-radius:6px; border:1px solid var(--gold); background:var(--gold); color:var(--black); font-family:'Syne',sans-serif; font-weight:600; font-size:12px; cursor:pointer;">✍️ Manuale</button>
@@ -1269,7 +1273,7 @@
         <label>Orario</label>
         <input type="time" id="cal-manual-time" value="10:00" style="max-width:120px;">
       </div>
-      <button class="btn btn-primary" onclick="saveCalPost('manual')" style="width:100%; justify-content:center; padding:12px; margin-top:8px;">✓ Aggiungi al Calendario</button>
+      <button class="btn btn-primary" onclick="saveCalPost('manual')" style="width:100%; justify-content:center; padding:12px; margin-top:8px;">✓ Aggiungi al Piano →</button>
     </div>
 
     <!-- Tab: AI -->
@@ -1297,7 +1301,7 @@
       </div>
       <div style="display:flex; gap:8px; margin-top:8px;">
         <button class="btn btn-outline" onclick="generateCalPost()" id="cal-ai-gen-btn" style="flex:1; justify-content:center; padding:12px;">✦ Genera con AI</button>
-        <button class="btn btn-primary" onclick="saveCalPost('ai')" id="cal-ai-save-btn" style="flex:1; justify-content:center; padding:12px; display:none;">✓ Aggiungi al Calendario</button>
+        <button class="btn btn-primary" onclick="saveCalPost('ai')" id="cal-ai-save-btn" style="flex:1; justify-content:center; padding:12px; display:none;">✓ Aggiungi al Piano →</button>
       </div>
     </div>
 
@@ -1531,10 +1535,31 @@ async function generatePosts() {
 function renderProposals(proposals) {
   var list = document.getElementById('proposals-list');
   list.innerHTML = '';
+
   if (!proposals.length) {
-    document.getElementById('gen-proposals').style.display = 'none';
+    // Tutti approvati — conta quanti ne abbiamo approvati
+    var approvedCount = posts.filter(function(p) {
+      return p.status === 'pending' && !p.scheduledDate;
+    }).length;
+
+    document.getElementById('gen-proposals').style.display = 'block';
+    list.innerHTML =
+      '<div style="text-align:center; padding: 40px 20px;">' +
+        '<div style="font-size: 48px; margin-bottom: 16px;">✦</div>' +
+        '<div style="font-family:\'Syne\',sans-serif; font-weight:700; font-size:20px; color:var(--white); margin-bottom:8px;">Ottimo lavoro!</div>' +
+        '<div style="font-size:14px; color:var(--gray-light); margin-bottom:24px;">' +
+          (approvedCount > 0
+            ? approvedCount + ' post approvati e pronti per il Piano Editoriale.'
+            : 'Post approvati e salvati.') +
+        '</div>' +
+        '<div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">' +
+          '<button onclick="showView(\'calendario\')" style="background:var(--gold);color:var(--black);border:none;padding:14px 28px;border-radius:8px;cursor:pointer;font-family:Syne,sans-serif;font-weight:700;font-size:14px;">📅 Crea Piano Editoriale →</button>' +
+          '<button onclick="document.getElementById(\'gen-proposals\').style.display=\'none\';" style="background:transparent;color:var(--gray-light);border:1px solid var(--border);padding:14px 24px;border-radius:8px;cursor:pointer;font-family:Syne,sans-serif;font-size:13px;">Genera altri post</button>' +
+        '</div>' +
+      '</div>';
     return;
   }
+
   proposals.forEach(function(p, i) {
     var charCount = p.text.length;
     var charColor = charCount > 1300 ? 'var(--red)' : charCount > 1000 ? 'var(--gold)' : 'var(--green)';
@@ -1579,19 +1604,15 @@ function approveSingle(index) {
     text: p.text,
     status: 'pending',
     created: new Date().toISOString(),
-    scheduled: null,
+    scheduledDate: null,
     topic: p.topic || 'AI'
   });
   savePosts();
   renderDashboard();
   updateStats();
-  // Rimuovi dalla lista
   window._proposals.splice(index, 1);
   renderProposals(window._proposals);
-  // Mostra bottone calendario se almeno uno approvato
-  var calBtn = document.getElementById('go-to-calendar-btn');
-  if (calBtn) calBtn.style.display = 'block';
-  showToast('Post approvato!', 'success');
+  showToast('✓ Post approvato!', 'success');
 }
 
 function deleteProposal(index) {
@@ -1692,9 +1713,9 @@ function saveAsDraft() {
 }
 
 function openReview(id) {
-  const post = posts.find(p => p.id === id);
+  var post = posts.find(function(p) { return String(p.id) === String(id); });
   if (!post) return;
-  currentEditId = id;
+  currentEditId = post.id;
   document.getElementById('modal-editor').value = post.text;
   document.getElementById('modal-preview').textContent = post.text;
   updateCharCount('modal-editor', 'modal-char');
@@ -1769,7 +1790,7 @@ function renderPostCard(post) {
   var isStarred = post.starred ? true : false;
   return '<div class="post-card ' + post.status + '">' +
     '<div class="post-meta">' +
-      '<span class="post-status ' + post.status + '">' + (post.status === 'pending' ? 'In attesa' : post.status === 'published' ? 'Pubblicato' : 'Bozza') + '</span>' +
+      '<span class="post-status ' + post.status + '">' + (post.status === 'pending' ? 'Da pianificare' : post.status === 'published' ? 'Su LinkedIn' : 'Bozza') + '</span>' +
       '<span class="post-date">' + date + '</span>' +
       '<span class="post-topic">' + (post.topic || '') + '</span>' +
       '<button onclick="toggleStar(' + post.id + ')" style="margin-left:auto; background:none; border:none; cursor:pointer; font-size:18px; padding:2px 6px; line-height:1; color:' + (isStarred ? 'var(--gold)' : 'var(--gray)') + '; transition: color 0.2s, transform 0.15s;" title="' + (isStarred ? 'Rimuovi dai preferiti' : 'Segna come preferito') + '">✦</button>' +
@@ -1777,41 +1798,43 @@ function renderPostCard(post) {
     '<div class="post-text">' + preview + '</div>' +
     '<div class="post-actions">' +
       '<button class="btn btn-outline" onclick="openReview(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">Revisiona</button>' +
-      (post.status === 'pending' ? '<button class="btn btn-success" onclick="quickPublish(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">✓ Pubblica</button>' : '') +
+      (post.status === 'pending' ? '<button class="btn btn-success" onclick="quickPublish(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">✓ Pubblicato su LinkedIn</button>' : '') +
       '<button class="btn btn-ghost" onclick="confirmDelete(' + post.id + ')" style="font-size: 12px; color: var(--red);">Elimina</button>' +
     '</div>' +
   '</div>';
 }
 
 function toggleStar(id) {
-  var idx = posts.findIndex(function(p) { return p.id === id; });
+  var idx = posts.findIndex(function(p) { return String(p.id) === String(id); });
   if (idx === -1) return;
   posts[idx].starred = !posts[idx].starred;
   savePosts();
   renderDashboard();
   renderStorico();
-  var msg = posts[idx].starred ? '⭐ Aggiunto ai preferiti — Claude imparerà da questo post!' : '☆ Rimosso dai preferiti';
+  var msg = posts[idx].starred ? '⭐ Preferito — Claude imparerà da questo post!' : '✦ Rimosso dai preferiti';
   showToast(msg, 'success');
 }
 
 function quickPublish(id) {
-  const idx = posts.findIndex(p => p.id === id);
+  var idx = posts.findIndex(function(p) { return String(p.id) === String(id); });
   if (idx === -1) return;
   posts[idx].status = 'published';
   posts[idx].publishedAt = new Date().toISOString();
   savePosts();
   renderDashboard();
   renderStorico();
+  renderCalendar();
   updateStats();
-  showToast('✓ Post approvato!', 'success');
+  showToast('✓ Post pubblicato!', 'success');
 }
 
 function confirmDelete(id) {
   if (confirm('Eliminare questo post?')) {
-    posts = posts.filter(p => p.id !== id);
+    posts = posts.filter(function(p) { return String(p.id) !== String(id); });
     savePosts();
     renderDashboard();
     renderStorico();
+    renderCalendar();
     updateStats();
     showToast('Post eliminato', 'success');
   }
@@ -1886,9 +1909,9 @@ function renderCalendar() {
       return pd === dateStr;
     });
     var pillsHtml = dayPosts.slice(0,2).map(function(p) {
-      var label = (p.topic || p.text || '').substring(0,12);
+      var label = (p.topic || p.text || '').substring(0,20);
       var cls = p.status === 'published' ? 'published' : '';
-      return '<div class="cal-post-pill ' + cls + '" onclick="event.stopPropagation();showDayPosts(\'' + dateStr + '\')" title="' + (p.topic || '') + '">' + label + '</div>';
+      return '<div class="cal-post-pill ' + cls + '" onclick="event.stopPropagation();showDayPosts(\'' + dateStr + '\')" title="' + (p.topic || p.text || '').substring(0,60) + '">' + label + '</div>';
     }).join('');
     if (dayPosts.length > 2) pillsHtml += '<div style="font-size:9px;color:var(--gray);text-align:center;">+' + (dayPosts.length-2) + '</div>';
     html += '<div class="cal-day ' + (isToday ? 'today' : '') + (dayPosts.length ? ' has-post' : '') + '" onclick="showDayPosts(\'' + dateStr + '\')">' +
@@ -1960,7 +1983,36 @@ function openCalModal(dateStr) {
   var d = new Date(dateStr + 'T12:00:00');
   var label = d.toLocaleDateString('it-IT', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
   document.getElementById('cal-add-date-label').textContent = '📅 ' + label;
-  // Reset
+
+  // Mostra post già presenti su questa data
+  var existingOnDate = posts.filter(function(p) {
+    return (p.scheduledDate || p.publishedAt || p.created || '').substring(0,10) === dateStr;
+  });
+  var existingEl = document.getElementById('cal-modal-existing');
+  if (existingEl) {
+    if (existingOnDate.length > 0) {
+      existingEl.style.display = 'block';
+      existingEl.innerHTML =
+        '<div style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray);margin-bottom:10px;">Post già in questa data</div>' +
+        existingOnDate.map(function(p) {
+          var statusColor = p.status === 'published' ? 'var(--green)' : 'var(--gold)';
+          var time = p.scheduledDate ? new Date(p.scheduledDate).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}) : '';
+          return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">' +
+            '<div style="flex:1;">' +
+              '<div style="font-size:12px;color:var(--white);line-height:1.4;">' + (p.text||'').substring(0,80) + '...</div>' +
+              '<div style="font-size:11px;font-family:\'DM Mono\',monospace;color:' + statusColor + ';margin-top:4px;">' + (time ? time + ' · ' : '') + (p.status === 'published' ? 'Pubblicato' : 'In attesa') + '</div>' +
+            '</div>' +
+            '<button onclick="openReview(' + p.id + ');closeCalModal();" style="background:none;border:1px solid var(--border);color:var(--gray-light);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:11px;">Apri</button>' +
+          '</div>';
+        }).join('') +
+        '<div style="border-top:1px solid var(--border);margin:12px 0 0;"></div>';
+    } else {
+      existingEl.style.display = 'none';
+      existingEl.innerHTML = '';
+    }
+  }
+
+  // Reset tab
   switchCalTab('manual');
   document.getElementById('cal-manual-text').value = '';
   document.getElementById('cal-manual-char').textContent = '0 / 1300';
@@ -2012,7 +2064,7 @@ function pickExistingPost(postId) {
   savePosts();
   renderCalendar();
   closeCalModal();
-  showToast('Post aggiunto al calendario!', 'success');
+  showToast('Post aggiunto al Piano Editoriale!', 'success');
 }
 
 async function generateCalPost() {
@@ -2072,7 +2124,7 @@ function saveCalPost(type) {
   renderCalendar();
   updateStats();
   closeCalModal();
-  showToast('Post aggiunto al calendario!', 'success');
+  showToast('Post aggiunto al Piano Editoriale!', 'success');
 }
 
 function changeMonth(dir) {
@@ -2256,7 +2308,7 @@ async function generateCalendarPlan() {
   btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Generando piano...';
   section.style.display = 'block';
   list.innerHTML = '';
-  status.textContent = 'Claude sta distribuendo ' + pendingPosts.length + ' post nel calendario...';
+  status.textContent = 'Claude sta pianificando ' + pendingPosts.length + ' post nel calendario...';
 
   var kb = localStorage.getItem('hom_knowledge') ? JSON.parse(localStorage.getItem('hom_knowledge')) : {};
   var now = new Date();
@@ -2317,7 +2369,7 @@ async function generateCalendarPlan() {
     });
 
     status.textContent = plan.length + ' post pianificati. Conferma le date o modificale.';
-    showToast('Piano generato!', 'success');
+    showToast('Piano Editoriale generato!', 'success');
 
   } catch(e) {
     status.textContent = 'Errore: ' + e.message;
