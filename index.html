@@ -5,20 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HOM — LinkedIn Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCYU0IVxNt6LYB9U8aIhRzEG-ps8Z3mx7A",
-    authDomain: "hom-linkedin.firebaseapp.com",
-    projectId: "hom-linkedin",
-    storageBucket: "hom-linkedin.firebasestorage.app",
-    messagingSenderId: "280456987425",
-    appId: "1:280456987425:web:dc9c386dc9463681983460"
-  };
-  firebase.initializeApp(firebaseConfig);
-  window.db = firebase.firestore();
-  window.firebaseReady = true;
+  // Storage locale — Firebase rimosso (incompatibile con Safari)
+  window.db = null;
+  window.firebaseReady = false;
 </script>
 <style>
   :root {
@@ -1380,20 +1370,11 @@
 // =================================================================
 
 async function saveToFirebase(key, data) {
-  try {
-    var db = window.db;
-    if (!db) return;
-    await db.collection("hom").doc(key).set({ data: JSON.stringify(data) });
-  } catch(e) { console.error("Firebase save error:", e); }
+  // Firebase rimosso — dati salvati solo in localStorage
 }
 
 async function loadFromFirebase(key) {
-  try {
-    var db = window.db;
-    if (!db) return null;
-    var snap = await db.collection("hom").doc(key).get();
-    if (snap.exists) return JSON.parse(snap.data().data);
-  } catch(e) { console.error("Firebase load error:", e); }
+  // Firebase rimosso — dati caricati solo da localStorage
   return null;
 }
 
@@ -1497,7 +1478,9 @@ async function generatePosts() {
   var tone = document.getElementById('gen-tone').value;
   var label = document.getElementById('gen-label').value;
   var notes = document.getElementById('gen-notes').value;
-  var kb = knowledge;
+  // Sempre ricarica KB da localStorage per avere i dati più aggiornati
+  var kb = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
+  knowledge = kb;
 
   var systemPrompt = buildSystemPrompt(kb);
   var userPrompt = 'Genera esattamente ' + count + ' post LinkedIn DIVERSI tra loro per House of Music.' +
@@ -1635,6 +1618,13 @@ async function generatePost() {
 }
 
 function buildSystemPrompt(kb) {
+  // Recupera post stellati come esempi di stile
+  var starredPosts = posts.filter(function(p) { return p.starred; }).slice(0, 5);
+  var starredExamples = starredPosts.length > 0
+    ? '\n\nESEMPI DI POST CHE FUNZIONANO (stile e tono da seguire):\n' +
+      starredPosts.map(function(p, i) { return '--- Esempio ' + (i+1) + ' ---\n' + p.text; }).join('\n\n')
+    : '';
+
   return `Sei il social media strategist di House of Music (HOM), il primo gruppo d'avanguardia italiano che aggrega etichette indipendenti senza annullarne l'identità.
 
 IDENTITÀ DEL BRAND:
@@ -1671,7 +1661,7 @@ FORMATO:
 - ${kb.hashtags || '3-5 hashtag pertinenti'} alla fine
 - Max 2-3 emoji per post
 
-Rispondi SOLO con il testo del post, niente altro.`;
+Rispondi SOLO con il testo del post, niente altro.` + starredExamples;
 }
 
 function buildUserPrompt(topic, tone, label, notes) {
@@ -1774,22 +1764,34 @@ function renderDashboard() {
 }
 
 function renderPostCard(post) {
-  const date = new Date(post.created).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
-  const preview = post.text.substring(0, 180) + (post.text.length > 180 ? '...' : '');
-  return `
-    <div class="post-card ${post.status}">
-      <div class="post-meta">
-        <span class="post-status ${post.status}">${post.status === 'pending' ? 'In attesa' : post.status === 'published' ? 'Pubblicato' : 'Bozza'}</span>
-        <span class="post-date">${date}</span>
-        <span class="post-topic">${post.topic || ''}</span>
-      </div>
-      <div class="post-text">${preview}</div>
-      <div class="post-actions">
-        <button class="btn btn-outline" onclick="openReview(${post.id})" style="font-size: 12px; padding: 7px 14px;">Revisiona</button>
-        ${post.status === 'pending' ? `<button class="btn btn-success" onclick="quickPublish(${post.id})" style="font-size: 12px; padding: 7px 14px;">✓ Approva</button>` : ''}
-        <button class="btn btn-ghost" onclick="confirmDelete(${post.id})" style="font-size: 12px; color: var(--red);">Elimina</button>
-      </div>
-    </div>`;
+  var date = new Date(post.created).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+  var preview = post.text.substring(0, 180) + (post.text.length > 180 ? '...' : '');
+  var isStarred = post.starred ? true : false;
+  return '<div class="post-card ' + post.status + '">' +
+    '<div class="post-meta">' +
+      '<span class="post-status ' + post.status + '">' + (post.status === 'pending' ? 'In attesa' : post.status === 'published' ? 'Pubblicato' : 'Bozza') + '</span>' +
+      '<span class="post-date">' + date + '</span>' +
+      '<span class="post-topic">' + (post.topic || '') + '</span>' +
+      '<button onclick="toggleStar(' + post.id + ')" style="margin-left:auto; background:none; border:none; cursor:pointer; font-size:18px; padding:2px 6px; line-height:1; color:' + (isStarred ? 'var(--gold)' : 'var(--gray)') + '; transition: color 0.2s, transform 0.15s;" title="' + (isStarred ? 'Rimuovi dai preferiti' : 'Segna come preferito') + '">✦</button>' +
+    '</div>' +
+    '<div class="post-text">' + preview + '</div>' +
+    '<div class="post-actions">' +
+      '<button class="btn btn-outline" onclick="openReview(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">Revisiona</button>' +
+      (post.status === 'pending' ? '<button class="btn btn-success" onclick="quickPublish(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">✓ Pubblica</button>' : '') +
+      '<button class="btn btn-ghost" onclick="confirmDelete(' + post.id + ')" style="font-size: 12px; color: var(--red);">Elimina</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function toggleStar(id) {
+  var idx = posts.findIndex(function(p) { return p.id === id; });
+  if (idx === -1) return;
+  posts[idx].starred = !posts[idx].starred;
+  savePosts();
+  renderDashboard();
+  renderStorico();
+  var msg = posts[idx].starred ? '⭐ Aggiunto ai preferiti — Claude imparerà da questo post!' : '☆ Rimosso dai preferiti';
+  showToast(msg, 'success');
 }
 
 function quickPublish(id) {
@@ -2071,7 +2073,6 @@ function saveCalPost(type) {
   updateStats();
   closeCalModal();
   showToast('Post aggiunto al calendario!', 'success');
-}
 }
 
 function changeMonth(dir) {
@@ -2744,6 +2745,7 @@ window.publishPost = publishPost;
 window.deletePost = deletePost;
 window.quickPublish = quickPublish;
 window.confirmDelete = confirmDelete;
+window.toggleStar = toggleStar;
 window.filterPosts = filterPosts;
 window.changeMonth = changeMonth;
 window.showDayPosts = showDayPosts;
@@ -2762,7 +2764,6 @@ window.updatePreview = updatePreview;
 window.updateModalPreview = updateModalPreview;
 window.updateApp = updateApp;
 window.generateCalendarPlan = generateCalendarPlan;
-window.approveAIPlan = approveAIPlan;
 window.schedulePost = schedulePost;
 window.saveGithubToken = saveGithubToken;
 window.sendUpdateMessage = sendUpdateMessage;
