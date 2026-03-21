@@ -5,736 +5,183 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HOM — LinkedIn Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-<script>
-  // Storage locale — Firebase rimosso (incompatibile con Safari)
-  window.db = null;
-  window.firebaseReady = false;
-</script>
 <style>
-  :root {
-    --black: #0a0a0a;
-    --white: #f5f2ec;
-    --cream: #ede9e0;
-    --gold: #c8a96e;
-    --gold-light: #e2c98a;
-    --gray: #6b6560;
-    --gray-light: #b5b0a8;
-    --red: #c94f3a;
-    --green: #3a7c5a;
-    --border: rgba(200,169,110,0.2);
-    --surface: rgba(255,255,255,0.03);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--black);
-    color: var(--white);
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* GRAIN OVERLAY */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 1000;
-    opacity: 0.4;
-  }
-
-  /* SIDEBAR */
-  .sidebar {
-    position: fixed;
-    left: 0; top: 0; bottom: 0;
-    width: 220px;
-    background: rgba(10,10,10,0.95);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    padding: 32px 0;
-    z-index: 100;
-  }
-
-  .sidebar-logo {
-    padding: 0 24px 28px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 24px;
-  }
-
-  .sidebar-logo .logo-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    color: var(--gray);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    margin-top: 6px;
-    display: block;
-  }
-
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 24px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--gray-light);
-    letter-spacing: 0.02em;
-    border-left: 2px solid transparent;
-    position: relative;
-  }
-
-  .nav-item:hover { color: var(--white); background: var(--surface); }
-
-  .nav-item.active {
-    color: var(--gold);
-    border-left-color: var(--gold);
-    background: rgba(200,169,110,0.06);
-  }
-
-  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
-
-  .nav-badge {
-    margin-left: auto;
-    background: var(--red);
-    color: white;
-    font-size: 10px;
-    font-family: 'DM Mono', monospace;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-weight: 400;
-  }
-
-  .nav-section {
-    padding: 16px 24px 8px;
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--gray);
-  }
-
-  .sidebar-bottom {
-    margin-top: auto;
-    padding: 24px;
-    border-top: 1px solid var(--border);
-  }
-
-  .api-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    color: var(--gray);
-    font-family: 'DM Mono', monospace;
-  }
-
-  .api-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--gray);
-  }
-
-  .api-dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
-
-  /* MAIN */
-  .main {
-    margin-left: 220px;
-    min-height: 100vh;
-    padding: 40px;
-  }
-
-  /* VIEWS */
-  .view { display: none; }
-  .view.active { display: block; }
-
-  /* PAGE HEADER */
-  .page-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 40px;
-  }
-
-  .page-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 28px;
-    letter-spacing: -0.02em;
-    color: var(--white);
-  }
-
-  .page-sub {
-    font-size: 13px;
-    color: var(--gray);
-    margin-top: 4px;
-    font-weight: 300;
-  }
-
-  /* BUTTONS */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s;
-    letter-spacing: 0.02em;
-    font-family: 'DM Sans', sans-serif;
-  }
-
-  .btn-primary {
-    background: var(--gold);
-    color: var(--black);
-  }
-  .btn-primary:hover { background: var(--gold-light); transform: translateY(-1px); }
-
-  .btn-outline {
-    background: transparent;
-    color: var(--white);
-    border: 1px solid var(--border);
-  }
-  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
-
-  .btn-ghost {
-    background: transparent;
-    color: var(--gray-light);
-    padding: 8px 12px;
-  }
-  .btn-ghost:hover { color: var(--white); }
-
-  .btn-danger {
-    background: transparent;
-    color: var(--red);
-    border: 1px solid rgba(201,79,58,0.3);
-  }
-  .btn-danger:hover { background: rgba(201,79,58,0.1); }
-
-  .btn-success {
-    background: var(--green);
-    color: white;
-  }
-  .btn-success:hover { background: #4a9c70; transform: translateY(-1px); }
-
-  /* CARDS */
-  .card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 24px;
-  }
-
-  /* DASHBOARD */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-
-  .stat-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
-  }
-
-  .stat-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--gray);
-    margin-bottom: 8px;
-  }
-
-  .stat-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 32px;
-    font-weight: 700;
-    color: var(--white);
-  }
-
-  .stat-value.gold { color: var(--gold); }
-
-  /* POST CARD */
-  .post-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 24px;
-    margin-bottom: 16px;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .post-card::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    background: var(--border);
-    transition: background 0.2s;
-  }
-
-  .post-card.pending::before { background: var(--gold); }
-  .post-card.published::before { background: var(--green); }
-  .post-card.draft::before { background: var(--gray); }
-
-  .post-card:hover { border-color: rgba(200,169,110,0.4); }
-
-  .post-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-
-  .post-status {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 3px 8px;
-    border-radius: 3px;
-  }
-
-  .post-status.pending { background: rgba(200,169,110,0.15); color: var(--gold); }
-  .post-status.scheduled { background: rgba(100,149,237,0.15); color: #6495ed; }
-  .post-status.published { background: rgba(58,124,90,0.15); color: #5aab7a; }
-  .post-status.draft { background: rgba(107,101,96,0.15); color: var(--gray-light); }
-
-  .post-date {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--gray);
-  }
-
-  .post-topic {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--gray);
-    margin-left: auto;
-    background: rgba(255,255,255,0.04);
-    padding: 3px 8px;
-    border-radius: 3px;
-  }
-
-  .post-text {
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--white);
-    margin-bottom: 16px;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .post-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  /* LINKEDIN PREVIEW */
-  .linkedin-preview {
-    background: #1b1f23;
-    border-radius: 8px;
-    padding: 20px;
-    border: 1px solid #333;
-    max-width: 560px;
-  }
-
-  .li-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .li-avatar {
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--gold), #8b6a30);
-    display: flex;
-    align-items: center;
-    justify-content: font-family;
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 18px;
-    color: var(--black);
-    align-items: center;
-    justify-content: center;
-  }
-
-  .li-name {
-    font-weight: 600;
-    font-size: 14px;
-    color: #e8e6e3;
-  }
-
-  .li-sub {
-    font-size: 12px;
-    color: #9b9b9b;
-    margin-top: 2px;
-  }
-
-  .li-body {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #e0ddd9;
-    white-space: pre-wrap;
-  }
-
-  .li-footer {
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid #333;
-    display: flex;
-    gap: 16px;
-  }
-
-  .li-action {
-    font-size: 12px;
-    color: #9b9b9b;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  /* EDITOR */
-  .editor-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    align-items: start;
-  }
-
-  textarea.post-editor {
-    width: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px;
-    color: var(--white);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    line-height: 1.6;
-    resize: vertical;
-    min-height: 320px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  textarea.post-editor:focus { border-color: var(--gold); }
-
-  .char-count {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--gray);
-    text-align: right;
-    margin-top: 6px;
-  }
-
-  .char-count.over { color: var(--red); }
-
-  /* MODAL */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    z-index: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-  }
-
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-
-  .modal {
-    background: #111;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 32px;
-    width: 100%;
-    max-width: 800px;
-    max-height: 90vh;
-    overflow-y: auto;
-    transform: translateY(20px);
-    transition: transform 0.2s;
-  }
-
-  .modal-overlay.open .modal { transform: translateY(0); }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-  }
-
-  .modal-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 20px;
-  }
-
-  /* CALENDAR */
-  .calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    margin-top: 16px;
-  }
-
-  .cal-header {
-    text-align: center;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--gray);
-    padding: 8px 0;
-    text-transform: uppercase;
-  }
-
-  .cal-day {
-    aspect-ratio: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    position: relative;
-    transition: all 0.15s;
-    border: 1px solid transparent;
-  }
-
-  .cal-day:hover { background: rgba(200,169,110,0.08); border-color: var(--border); }
-  .cal-day.today { border-color: var(--gold); color: var(--gold); font-weight: 600; }
-  .cal-day.has-post::after {
-    content: '';
-    position: absolute;
-    bottom: 4px;
-    width: 4px; height: 4px;
-    border-radius: 50%;
-    background: var(--gold);
-  }
-
-  .cal-day.other-month { color: var(--gray); }
-
-  .cal-post-pill {
-    font-size: 9px;
-    background: rgba(200,169,110,0.2);
-    color: var(--gold);
-    border-radius: 3px;
-    padding: 1px 4px;
-    margin-top: 2px;
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: left;
-    cursor: pointer;
-    border: none;
-    font-family: 'DM Mono', monospace;
-  }
-
-  .cal-post-pill.published {
-    background: rgba(58,124,90,0.2);
-    color: #5aab7a;
-  }
-
-  .cal-day {
-    aspect-ratio: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    position: relative;
-    transition: all 0.15s;
-    border: 1px solid transparent;
-    padding: 4px 2px;
-    min-height: 52px;
-  }
-
-  /* KNOWLEDGE BASE */
-  .kb-section {
-    margin-bottom: 32px;
-  }
-
-  .kb-section-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 600;
-    font-size: 16px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--gold);
-  }
-
-  .kb-field label {
-    display: block;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--gray);
-    margin-bottom: 6px;
-  }
-
-  .kb-field input, .kb-field textarea, .kb-field select {
-    width: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 14px;
-    color: var(--white);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    outline: none;
-    transition: border-color 0.2s;
-    margin-bottom: 16px;
-  }
-
-  .kb-field input:focus, .kb-field textarea:focus { border-color: var(--gold); }
-  .kb-field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
-  .kb-field select option { background: #111; }
-
-  .kb-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(200,169,110,0.1);
-    border: 1px solid rgba(200,169,110,0.2);
-    color: var(--gold);
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    margin: 4px;
-    cursor: pointer;
-  }
-
-  .kb-tag:hover { background: rgba(200,169,110,0.2); }
-
-  /* GENERATE */
-  .generate-section {
-    background: rgba(200,169,110,0.05);
-    border: 1px solid rgba(200,169,110,0.15);
-    border-radius: 8px;
-    padding: 28px;
-    text-align: center;
-  }
-
-  .generate-icon {
-    font-size: 40px;
-    margin-bottom: 16px;
-    display: block;
-  }
-
-  .loading-dots {
-    display: inline-flex;
-    gap: 4px;
-    align-items: center;
-  }
-
-  .loading-dots span {
-    width: 6px; height: 6px;
-    background: var(--gold);
-    border-radius: 50%;
-    animation: bounce 1.2s infinite;
-  }
-
-  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-  @keyframes bounce {
-    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-    40% { transform: scale(1); opacity: 1; }
-  }
-
-  /* TOAST */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #1a1a1a;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 20px;
-    font-size: 13px;
-    z-index: 999;
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s;
-    max-width: 320px;
-  }
-
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { border-left: 3px solid var(--green); }
-  .toast.error { border-left: 3px solid var(--red); }
-
-  /* SCROLLBAR */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  /* INPUT API KEY */
-  .api-input-wrap {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  .api-input-wrap input {
-    flex: 1;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 14px;
-    color: var(--white);
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    outline: none;
-  }
-
-  .api-input-wrap input:focus { border-color: var(--gold); }
-
-  /* RESPONSIVE */
-  @media (max-width: 768px) {
-    .sidebar { width: 60px; }
-    .sidebar .nav-item span:not(.nav-icon) { display: none; }
-    .sidebar-logo .logo-sub { display: none; }
-    .sidebar-logo .logo-text { font-size: 16px; }
-    .sidebar-logo { padding: 0 12px 24px; }
-    .nav-item { padding: 14px; justify-content: center; }
-    .nav-section { display: none; }
-    .nav-badge { display: none; }
-    .main { margin-left: 60px; padding: 20px 16px; }
-    .stats-row { grid-template-columns: repeat(2, 1fr); }
-    .editor-layout { grid-template-columns: 1fr; }
-    .page-title { font-size: 22px; }
-  }
+:root {
+  --black: #0a0a0a;
+  --white: #f5f2ec;
+  --cream: #ede9e0;
+  --gold: #c8a96e;
+  --gold-light: #e2c98a;
+  --gray: #6b6560;
+  --gray-light: #b5b0a8;
+  --red: #c94f3a;
+  --green: #3a7c5a;
+  --blue: #6495ed;
+  --border: rgba(200,169,110,0.2);
+  --surface: rgba(255,255,255,0.03);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:1000; opacity:0.4; }
+
+/* SIDEBAR */
+.sidebar { position:fixed; left:0; top:0; bottom:0; width:220px; background:rgba(10,10,10,0.95); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:32px 0; z-index:100; }
+.sidebar-logo { padding:0 24px 28px; border-bottom:1px solid var(--border); margin-bottom:24px; }
+.sidebar-logo .logo-sub { font-family:'DM Mono',monospace; font-size:9px; color:var(--gray); letter-spacing:0.18em; text-transform:uppercase; margin-top:6px; display:block; }
+.nav-item { display:flex; align-items:center; gap:12px; padding:12px 24px; cursor:pointer; transition:all 0.2s; font-size:13px; font-weight:400; color:var(--gray-light); letter-spacing:0.02em; border-left:2px solid transparent; }
+.nav-item:hover { color:var(--white); background:var(--surface); }
+.nav-item.active { color:var(--gold); border-left-color:var(--gold); background:rgba(200,169,110,0.06); }
+.nav-item .nav-icon { font-size:16px; width:20px; text-align:center; }
+.nav-badge { margin-left:auto; background:var(--gold); color:var(--black); font-size:10px; font-family:'DM Mono',monospace; padding:2px 6px; border-radius:10px; font-weight:600; }
+.nav-section { padding:16px 24px 8px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--gray); }
+.sidebar-bottom { margin-top:auto; padding:24px; border-top:1px solid var(--border); }
+.api-status { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--gray); font-family:'DM Mono',monospace; }
+.api-dot { width:6px; height:6px; border-radius:50%; background:var(--gray); }
+.api-dot.ok { background:var(--green); box-shadow:0 0 6px var(--green); }
+
+/* MAIN */
+.main { margin-left:220px; min-height:100vh; padding:40px; }
+.view { display:none; }
+.view.active { display:block; }
+
+/* TYPOGRAPHY */
+.page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:40px; gap:16px; }
+.page-title { font-family:'Syne',sans-serif; font-weight:700; font-size:28px; letter-spacing:-0.02em; }
+.page-sub { font-size:13px; color:var(--gray); margin-top:4px; font-weight:300; }
+.section-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gray); margin-bottom:16px; }
+
+/* BUTTONS — consistent system */
+.btn { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; border:none; transition:all 0.2s; letter-spacing:0.02em; font-family:'DM Sans',sans-serif; white-space:nowrap; }
+.btn-primary { background:var(--gold); color:var(--black); }
+.btn-primary:hover { background:var(--gold-light); transform:translateY(-1px); }
+.btn-outline { background:transparent; color:var(--white); border:1px solid var(--border); }
+.btn-outline:hover { border-color:var(--gold); color:var(--gold); }
+.btn-ghost { background:transparent; color:var(--gray-light); padding:8px 12px; }
+.btn-ghost:hover { color:var(--white); }
+.btn-danger { background:transparent; color:var(--red); border:1px solid rgba(201,79,58,0.3); }
+.btn-danger:hover { background:rgba(201,79,58,0.1); }
+.btn-success { background:var(--green); color:white; }
+.btn-success:hover { background:#4a9c70; transform:translateY(-1px); }
+.btn-sm { padding:7px 14px; font-size:12px; }
+.btn[disabled] { opacity:0.5; pointer-events:none; }
+
+/* CARDS — one consistent style */
+.card { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:24px; }
+
+/* POST CARD */
+.post-card { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:12px; transition:border-color 0.2s; position:relative; }
+.post-card:hover { border-color:rgba(200,169,110,0.4); }
+.post-card-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.post-card-status { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; padding:3px 8px; border-radius:3px; }
+.post-card-status.pending { background:rgba(200,169,110,0.15); color:var(--gold); }
+.post-card-status.scheduled { background:rgba(100,149,237,0.15); color:var(--blue); }
+.post-card-status.published { background:rgba(58,124,90,0.15); color:#5aab7a; }
+.post-card-status.ready { background:rgba(200,169,110,0.3); color:var(--gold-light); animation:pulse-ready 2s infinite; }
+@keyframes pulse-ready { 0%,100%{opacity:1} 50%{opacity:0.7} }
+.ready-banner { background:rgba(200,169,110,0.08); border:2px solid var(--gold); border-radius:8px; padding:20px; margin-bottom:24px; }
+.ready-banner .ready-title { font-family:'Syne',sans-serif; font-weight:700; font-size:16px; color:var(--gold); margin-bottom:4px; }
+.ready-banner .ready-sub { font-size:12px; color:var(--gray-light); }
+.post-card-date { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); }
+.post-card-topic { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); margin-left:auto; background:rgba(255,255,255,0.04); padding:3px 8px; border-radius:3px; }
+.post-card-text { font-size:14px; line-height:1.6; color:var(--white); margin-bottom:14px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.post-card-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+
+/* FORM FIELDS */
+.field label { display:block; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--gray); margin-bottom:6px; }
+.field input, .field textarea, .field select { width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px; padding:10px 14px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; transition:border-color 0.2s; }
+.field input:focus, .field textarea:focus { border-color:var(--gold); }
+.field textarea { resize:vertical; min-height:80px; line-height:1.5; }
+.field select option { background:#111; }
+.field { margin-bottom:16px; }
+
+/* STATS ROW */
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }
+.stat-card { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:20px; }
+.stat-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--gray); margin-bottom:8px; }
+.stat-value { font-family:'Syne',sans-serif; font-size:28px; font-weight:700; color:var(--white); }
+.stat-value.gold { color:var(--gold); }
+.stat-value.green { color:var(--green); }
+.stat-detail { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); margin-top:4px; }
+
+/* CALENDAR */
+.calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-header { text-align:center; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; color:var(--gray); padding:8px 0; text-transform:uppercase; }
+.cal-day { aspect-ratio:1; display:flex; flex-direction:column; align-items:center; border-radius:6px; cursor:pointer; font-size:12px; position:relative; transition:all 0.15s; border:1px solid transparent; padding:4px 2px; min-height:52px; }
+.cal-day:hover { background:rgba(200,169,110,0.08); border-color:var(--border); }
+.cal-day.today { border-color:var(--gold); color:var(--gold); font-weight:600; }
+.cal-day.other-month { color:var(--gray); opacity:0.4; }
+.cal-day.has-post::after { content:''; position:absolute; bottom:4px; width:4px; height:4px; border-radius:50%; background:var(--gold); }
+.cal-post-pill { font-size:9px; background:rgba(200,169,110,0.2); color:var(--gold); border-radius:3px; padding:1px 4px; margin-top:2px; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; cursor:pointer; border:none; font-family:'DM Mono',monospace; }
+.cal-post-pill.published { background:rgba(58,124,90,0.2); color:#5aab7a; }
+
+/* LINKEDIN PREVIEW */
+.linkedin-preview { background:#1b1f23; border-radius:8px; padding:20px; border:1px solid #333; max-width:560px; }
+.li-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.li-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--gold),#8b6a30); display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-weight:800; font-size:18px; color:var(--black); }
+.li-name { font-weight:600; font-size:14px; color:#e8e6e3; }
+.li-sub { font-size:12px; color:#9b9b9b; margin-top:2px; }
+.li-body { font-size:14px; line-height:1.6; color:#e0ddd9; white-space:pre-wrap; }
+.li-footer { margin-top:16px; padding-top:12px; border-top:1px solid #333; display:flex; gap:16px; }
+.li-action { font-size:12px; color:#9b9b9b; display:flex; align-items:center; gap:4px; }
+
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:500; display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity 0.2s; }
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal { background:#111; border:1px solid var(--border); border-radius:12px; padding:32px; width:100%; max-width:800px; max-height:90vh; overflow-y:auto; transform:translateY(20px); transition:transform 0.2s; }
+.modal-overlay.open .modal { transform:translateY(0); }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+.modal-title { font-family:'Syne',sans-serif; font-weight:700; font-size:20px; }
+.editor-layout { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+textarea.post-editor { width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px; padding:16px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:14px; line-height:1.6; resize:vertical; min-height:280px; outline:none; transition:border-color 0.2s; }
+textarea.post-editor:focus { border-color:var(--gold); }
+.char-count { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray); text-align:right; margin-top:6px; }
+.char-count.over { color:var(--red); }
+
+/* LOADING */
+.loading-dots { display:inline-flex; gap:4px; align-items:center; }
+.loading-dots span { width:6px; height:6px; background:var(--gold); border-radius:50%; animation:bounce 1.2s infinite; }
+.loading-dots span:nth-child(2) { animation-delay:0.2s; }
+.loading-dots span:nth-child(3) { animation-delay:0.4s; }
+@keyframes bounce { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+
+/* TOAST */
+.toast { position:fixed; bottom:24px; right:24px; background:#1a1a1a; border:1px solid var(--border); border-radius:8px; padding:14px 20px; font-size:13px; z-index:999; transform:translateY(80px); opacity:0; transition:all 0.3s; max-width:320px; }
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.success { border-left:3px solid var(--green); }
+.toast.error { border-left:3px solid var(--red); }
+
+/* KPI CHART BAR */
+.kpi-bar-wrap { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.kpi-bar-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-light); min-width:100px; text-align:right; }
+.kpi-bar-track { flex:1; height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden; }
+.kpi-bar-fill { height:100%; border-radius:4px; transition:width 0.5s; }
+.kpi-bar-value { font-family:'DM Mono',monospace; font-size:11px; color:var(--white); min-width:50px; }
+
+/* EMPTY STATE */
+.empty-state { text-align:center; padding:60px 20px; color:var(--gray); }
+.empty-state .icon { font-size:40px; margin-bottom:16px; display:block; }
+.empty-state .title { font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gray-light); margin-bottom:8px; }
+.empty-state .desc { font-size:13px; line-height:1.6; max-width:400px; margin:0 auto; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* RESPONSIVE */
+@media (max-width:768px) {
+  .sidebar { width:60px; }
+  .sidebar .nav-item span:not(.nav-icon) { display:none; }
+  .sidebar-logo .logo-sub { display:none; }
+  .sidebar-logo { padding:0 12px 24px; }
+  .nav-item { padding:14px; justify-content:center; }
+  .nav-section { display:none; }
+  .nav-badge { display:none; }
+  .main { margin-left:60px; padding:20px 16px; }
+  .stats-row { grid-template-columns:repeat(2,1fr); }
+  .editor-layout { grid-template-columns:1fr; }
+  .page-title { font-size:22px; }
+}
 </style>
 </head>
 <body>
@@ -745,35 +192,31 @@
     <svg width="140" height="52" viewBox="0 0 140 52" fill="none" xmlns="http://www.w3.org/2000/svg">
       <polygon points="20,4 36,14 20,24 4,14" fill="#c8a96e"/>
       <ellipse cx="20" cy="14" rx="5" ry="3" fill="#0a0a0a"/>
-      <text x="44" y="20" font-family="Syne, sans-serif" font-weight="800" font-size="20" letter-spacing="5" fill="#ff3333">HOM</text>
-      <text x="44" y="36" font-family="DM Mono, monospace" font-weight="300" font-size="9" letter-spacing="2" fill="#6b6560">LINKEDIN MANAGER</text>
+      <text x="44" y="20" font-family="Syne,sans-serif" font-weight="800" font-size="20" letter-spacing="5" fill="#ff3333">HOM</text>
+      <text x="44" y="36" font-family="DM Mono,monospace" font-weight="300" font-size="9" letter-spacing="2" fill="#6b6560">LINKEDIN MANAGER</text>
     </svg>
   </div>
 
   <span class="nav-section">Contenuti</span>
-  <div class="nav-item active" onclick="showView('calendario')">
+  <div class="nav-item active" onclick="showView('genera')">
+    <span class="nav-icon">✦</span>
+    <span>Genera Post</span>
+  </div>
+  <div class="nav-item" onclick="showView('piano')">
     <span class="nav-icon">📅</span>
     <span>Piano Editoriale</span>
-  </div>
-  <div class="nav-item" onclick="showView('dashboard')">
-    <span class="nav-icon">🏠</span>
-    <span>Dashboard</span>
-    <span class="nav-badge" id="pending-badge">0</span>
-  </div>
-  <div class="nav-item" onclick="showView('genera')">
-    <span class="nav-icon">✍️</span>
-    <span>Genera Post</span>
+    <span class="nav-badge" id="badge-pending" style="display:none">0</span>
   </div>
   <div class="nav-item" onclick="showView('storico')">
     <span class="nav-icon">📋</span>
     <span>Storico</span>
   </div>
+  <div class="nav-item" onclick="showView('analytics')">
+    <span class="nav-icon">📊</span>
+    <span>Analytics</span>
+  </div>
 
   <span class="nav-section">Configurazione</span>
-  <div class="nav-item" onclick="showView('impostazioni')">
-    <span class="nav-icon">⚙️</span>
-    <span>Impostazioni</span>
-  </div>
   <div class="nav-item" onclick="showView('knowledge')">
     <span class="nav-icon">📚</span>
     <span>Knowledge Base</span>
@@ -782,15 +225,19 @@
     <span class="nav-icon">👤</span>
     <span>Profilo LinkedIn</span>
   </div>
-  <div class="nav-item" onclick="showView('aggiorna')">
-    <span class="nav-icon">⚡</span>
-    <span>Aggiorna App</span>
+  <div class="nav-item" onclick="showView('impostazioni')">
+    <span class="nav-icon">⚙️</span>
+    <span>Impostazioni</span>
   </div>
 
   <div class="sidebar-bottom">
-    <div class="api-status">
+    <div class="api-status" style="margin-bottom:6px;">
       <div class="api-dot" id="api-dot"></div>
-      <span id="api-status-text">API non configurata</span>
+      <span id="api-status-text">Claude API</span>
+    </div>
+    <div class="api-status">
+      <div class="api-dot" id="n8n-sidebar-dot"></div>
+      <span id="n8n-sidebar-text">LinkedIn N8N</span>
     </div>
   </div>
 </aside>
@@ -798,71 +245,19 @@
 <!-- MAIN -->
 <main class="main">
 
-  <!-- DASHBOARD -->
-  <div class="view" id="view-dashboard">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Dashboard</div>
-        <div class="page-sub">Panoramica dei tuoi post LinkedIn</div>
-      </div>
-      <button class="btn btn-primary" onclick="showView('genera')">✍️ Genera Post</button>
-    </div>
-
-    <div class="stats-row">
-      <div class="stat-card" style="cursor:pointer;" onclick="showView('genera')">
-        <div class="stat-label">Approvati</div>
-        <div class="stat-value gold" id="stat-pending">0</div>
-      </div>
-      <div class="stat-card" style="cursor:pointer;" onclick="showView('calendario')">
-        <div class="stat-label">Pianificati</div>
-        <div class="stat-value" id="stat-scheduled">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Su LinkedIn</div>
-        <div class="stat-value" id="stat-published">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Questo mese</div>
-        <div class="stat-value" id="stat-month">0</div>
-      </div>
-    </div>
-
-    <!-- Approvati — in attesa di essere pianificati -->
-    <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">✓ Approvati — da pianificare</div>
-      <button class="btn btn-ghost" onclick="showView('genera')" style="font-size: 12px; padding: 6px 12px;">+ Genera altri</button>
-    </div>
-    <div id="pending-list"></div>
-
-    <!-- Pianificati -->
-    <div style="margin-top: 32px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">📅 Prossimi nel piano</div>
-      <button class="btn btn-ghost" onclick="showView('calendario')" style="font-size: 12px; padding: 6px 12px;">Vai al Piano →</button>
-    </div>
-    <div id="scheduled-list"></div>
-
-    <!-- Pubblicati -->
-    <div style="margin-top: 32px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);">✅ Ultimi su LinkedIn</div>
-      <div id="last-published-info" style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gray);"></div>
-    </div>
-    <div id="published-list"></div>
-  </div>
-
-  <!-- GENERA -->
-  <div class="view" id="view-genera">
+  <!-- ==================== GENERA POST ==================== -->
+  <div class="view active" id="view-genera">
     <div class="page-header">
       <div>
         <div class="page-title">Genera Post</div>
-        <div class="page-sub">L'AI propone le bozze, tu selezioni e approvi</div>
+        <div class="page-sub">L'AI genera le proposte, tu scegli quali approvare</div>
       </div>
     </div>
 
-    <!-- CONFIGURAZIONE -->
-    <div class="card" style="margin-bottom: 24px;">
-      <div style="display: grid; grid-template-columns: 0.5fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-        <div class="kb-field">
-          <label>N° post</label>
+    <div class="card" style="margin-bottom:24px;">
+      <div style="display:grid; grid-template-columns:0.5fr 1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
+        <div class="field">
+          <label>Quanti post</label>
           <select id="gen-count">
             <option value="1">1</option>
             <option value="3" selected>3</option>
@@ -870,20 +265,20 @@
             <option value="10">10</option>
           </select>
         </div>
-        <div class="kb-field">
+        <div class="field">
           <label>Tipo di contenuto</label>
           <select id="gen-topic">
-            <option value="">— Automatico —</option>
+            <option value="">Automatico</option>
             <option value="Pensiero sul futuro della musica indipendente">Pensiero sull'industria</option>
-            <option value="Presentazione di un'etichetta o artista delle Rooms">Presentazione etichetta/artista</option>
-            <option value="Behind the scenes — come lavora HOM">Behind the scenes HOM</option>
-            <option value="Riflessione sul modello ecosistema vs major">Business model / ecosistema</option>
+            <option value="Presentazione di un'etichetta o artista">Presentazione etichetta/artista</option>
+            <option value="Behind the scenes — come lavora HOM">Behind the scenes</option>
+            <option value="Riflessione sul modello ecosistema vs major">Business model</option>
             <option value="Cultura e valori — indipendenza e libertà artistica">Cultura e valori</option>
             <option value="Tecnologia e dati — Midly e data-driven music">Tech & Dati</option>
             <option value="Annuncio uscita discografica o progetto">Uscita discografica</option>
           </select>
         </div>
-        <div class="kb-field">
+        <div class="field">
           <label>Tono</label>
           <select id="gen-tone">
             <option value="visionario e culturale">Visionario</option>
@@ -892,10 +287,10 @@
             <option value="provocatorio e di rottura">Provocatorio</option>
           </select>
         </div>
-        <div class="kb-field">
+        <div class="field">
           <label>Etichetta focus</label>
           <select id="gen-label">
-            <option value="">Tutte (HOM generale)</option>
+            <option value="">HOM generale</option>
             <option value="Asian Fake">Asian Fake</option>
             <option value="FLUIDOSTUDIO">FLUIDOSTUDIO</option>
             <option value="Peroni Dischi">Peroni Dischi</option>
@@ -905,455 +300,305 @@
           </select>
         </div>
       </div>
-      <div class="kb-field">
+      <div class="field" style="margin-bottom:20px;">
         <label>Note aggiuntive (opzionale)</label>
-        <textarea id="gen-notes" placeholder="Es: menziona l'apertura del nuovo store, parla della collaborazione con X..." style="min-height: 60px;"></textarea>
+        <textarea id="gen-notes" placeholder="Es: menziona l'apertura del nuovo store, parla della collaborazione con X..." style="min-height:60px;"></textarea>
       </div>
-      <button class="btn btn-primary" onclick="generatePosts()" id="gen-btn" style="width: 100%; justify-content: center; padding: 14px;">
+      <button class="btn btn-primary" id="gen-btn" onclick="generatePosts()" style="width:100%; justify-content:center; padding:14px;">
         ✦ Genera Proposte con AI
       </button>
     </div>
 
-    <!-- PROPOSTE -->
-    <div id="gen-proposals" style="display: none;">
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray); margin-bottom: 16px;">Proposte AI — seleziona quelle che vuoi approvare</div>
-      <div id="proposals-list"></div>
-
-      <!-- BOTTONE AGGIUNGI A CALENDARIO — appare dopo aver approvato -->
-      <div id="go-to-calendar-btn" style="display:none; margin-top: 24px;">
-        <div class="card" style="background: rgba(200,169,110,0.08); border-color: rgba(200,169,110,0.4); text-align: center; padding: 24px;">
-          <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:16px; color:var(--gold); margin-bottom:8px;">✅ Post approvati!</div>
-          <div style="font-size:13px; color:var(--gray-light); margin-bottom:16px;">I post sono pronti. Vai al Piano Editoriale per assegnare date e orari.</div>
-          <button class="btn btn-primary" onclick="showView('calendario')" style="padding: 14px 32px; font-size: 14px;">📅 Crea Piano Editoriale →</button>
+    <!-- Proposals area -->
+    <div id="gen-proposals" style="display:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div class="section-label" style="margin-bottom:0;">Proposte AI</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-outline btn-sm" onclick="approveAll()">Approva tutte</button>
+          <button class="btn btn-ghost btn-sm" onclick="discardAll()">Scarta tutte</button>
         </div>
       </div>
+      <div id="proposals-list"></div>
     </div>
   </div>
 
-  <!-- CALENDARIO -->
-  <div class="view active" id="view-calendario">
+  <!-- ==================== PIANO EDITORIALE ==================== -->
+  <div class="view" id="view-piano">
     <div class="page-header">
       <div>
         <div class="page-title">Piano Editoriale</div>
-        <div class="page-sub">Pianifica i tuoi post con AI</div>
+        <div class="page-sub">Distribuisci i post approvati nel calendario</div>
       </div>
-      <button class="btn btn-primary" onclick="generateCalendarPlan()" id="gen-plan-btn">✦ Genera Piano AI →</button>
+      <button class="btn btn-primary" onclick="distributePlan()" id="distribute-btn">✦ Distribuisci con AI</button>
     </div>
 
-    <!-- Piano AI proposta -->
-    <div id="ai-plan-section" style="display:none; margin-bottom: 24px;">
-      <div class="card" style="background: rgba(200,169,110,0.05); border-color: rgba(200,169,110,0.3);">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-          <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:14px; color:var(--gold);">✦ Piano AI — assegna date ai post in attesa</div>
-          <button class="btn btn-ghost" onclick="document.getElementById('ai-plan-section').style.display='none'" style="font-size:12px;">✕ Chiudi</button>
-        </div>
-        <div id="ai-plan-list"></div>
-        <div id="ai-plan-status" style="font-size:12px; color:var(--gray); font-family:'DM Mono',monospace; margin-top:8px;"></div>
-      </div>
-    </div>
+    <!-- READY: posts whose time has come -->
+    <div id="piano-ready" style="margin-bottom:24px;"></div>
 
-    <!-- Lista post del mese SOPRA la griglia -->
-    <div id="cal-month-posts" style="margin-bottom: 24px;"></div>
+    <!-- Pending posts to schedule -->
+    <div id="piano-pending" style="margin-bottom:32px;"></div>
 
-    <!-- Navigazione mese + vista lista -->
+    <!-- Calendar -->
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
         <button class="btn btn-ghost" onclick="changeMonth(-1)">← Prev</button>
         <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:18px;" id="cal-title"></div>
         <button class="btn btn-ghost" onclick="changeMonth(1)">Next →</button>
       </div>
-
-      <!-- Griglia giorni settimana -->
       <div class="calendar-grid" id="cal-headers"></div>
       <div class="calendar-grid" id="cal-grid"></div>
     </div>
 
-    <div id="cal-day-posts" style="margin-top: 16px;"></div>
+    <!-- Month post list -->
+    <div id="cal-month-posts" style="margin-top:24px;"></div>
   </div>
 
-  <!-- STORICO -->
+  <!-- ==================== STORICO ==================== -->
   <div class="view" id="view-storico">
     <div class="page-header">
       <div>
         <div class="page-title">Storico</div>
-        <div class="page-sub">Tutti i post pubblicati e le bozze</div>
+        <div class="page-sub">Archivio completo dei tuoi post</div>
       </div>
     </div>
-    <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
-      <button class="btn btn-outline" onclick="filterPosts('all')" id="filter-all" style="border-color: var(--gold); color: var(--gold);">Tutti</button>
-      <button class="btn btn-outline" onclick="filterPosts('published')" id="filter-published">Pubblicati</button>
-      <button class="btn btn-outline" onclick="filterPosts('pending')" id="filter-pending">In attesa</button>
-      <button class="btn btn-outline" onclick="filterPosts('draft')" id="filter-draft">Bozze</button>
-      <input type="text" id="storico-search" placeholder="🔍 Cerca nel testo..." oninput="renderStorico()"
-        style="flex: 1; min-width: 200px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 6px; padding: 9px 14px; color: var(--white); font-family: DM Sans, sans-serif; font-size: 13px; outline: none;">
+    <div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
+      <button class="btn btn-outline btn-sm filter-btn active" data-filter="all" onclick="filterPosts('all')">Tutti</button>
+      <button class="btn btn-outline btn-sm filter-btn" data-filter="published" onclick="filterPosts('published')">Pubblicati</button>
+      <button class="btn btn-outline btn-sm filter-btn" data-filter="pending" onclick="filterPosts('pending')">In attesa</button>
+      <button class="btn btn-outline btn-sm filter-btn" data-filter="scheduled" onclick="filterPosts('scheduled')">Pianificati</button>
+      <input type="text" id="storico-search" placeholder="Cerca..." oninput="renderStorico()"
+        style="flex:1; min-width:180px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px; padding:9px 14px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:13px; outline:none;">
     </div>
     <div id="storico-list"></div>
   </div>
 
-  <!-- KNOWLEDGE BASE -->
+  <!-- ==================== ANALYTICS ==================== -->
+  <div class="view" id="view-analytics">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Analytics</div>
+        <div class="page-sub">Performance dei post pubblicati — impara cosa funziona</div>
+      </div>
+      <button class="btn btn-outline" onclick="fetchAllMetrics()" id="fetch-metrics-btn">Aggiorna metriche da LinkedIn</button>
+    </div>
+
+    <div class="stats-row" id="analytics-stats"></div>
+
+    <!-- Best performing -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:32px;">
+      <div class="card">
+        <div class="section-label">Migliori topic per engagement</div>
+        <div id="analytics-topics"></div>
+      </div>
+      <div class="card">
+        <div class="section-label">Migliori toni per engagement</div>
+        <div id="analytics-tones"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px;">
+      <div class="section-label">Top post per engagement</div>
+      <div id="analytics-top-posts"></div>
+    </div>
+  </div>
+
+  <!-- ==================== KNOWLEDGE BASE ==================== -->
   <div class="view" id="view-knowledge">
     <div class="page-header">
       <div>
         <div class="page-title">Knowledge Base</div>
-        <div class="page-sub">Aggiungi informazioni per migliorare la qualità dei post</div>
+        <div class="page-sub">Informazioni per migliorare la qualità dei post AI</div>
       </div>
-      <button class="btn btn-primary" onclick="saveKnowledge()">Salva</button>
-      <button class="btn btn-outline" onclick="exportKnowledge()" style="margin-left: 8px;">⬇️ Esporta KB</button>
-    </div>
-
-    <div class="kb-section">
-      <div class="kb-section-title">◈ Identità HOM</div>
-      <div class="card">
-        <div class="kb-field">
-          <label>Descrizione dell'azienda</label>
-          <textarea id="kb-desc" placeholder="Descrivi HOM in modo approfondito..."></textarea>
-        </div>
-        <div class="kb-field">
-          <label>Valori e filosofia</label>
-          <textarea id="kb-values" placeholder="Es: indipendenza come vantaggio competitivo, song-driven model..."></textarea>
-        </div>
-        <div class="kb-field">
-          <label>Target audience LinkedIn</label>
-          <textarea id="kb-audience" placeholder="Es: investitori del settore musicale, artisti indie, addetti ai lavori, manager..."></textarea>
-        </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary" onclick="saveKnowledge()">Salva</button>
+        <button class="btn btn-outline" onclick="exportKnowledge()">Esporta</button>
       </div>
     </div>
 
-    <div class="kb-section">
-      <div class="kb-section-title">◉ Etichette e Artisti</div>
-      <div class="card">
-        <div class="kb-field">
-          <label>Asian Fake</label>
-          <textarea id="kb-af" placeholder="Descrivi Asian Fake, generi, artisti principali, successi recenti..."></textarea>
-        </div>
-        <div class="kb-field">
-          <label>FLUIDOSTUDIO</label>
-          <textarea id="kb-fluid" placeholder="Descrivi FLUIDOSTUDIO..."></textarea>
-        </div>
-        <div class="kb-field">
-          <label>Peroni Dischi</label>
-          <textarea id="kb-peroni" placeholder="Descrivi Peroni Dischi..."></textarea>
-        </div>
-        <div class="kb-field">
-          <label>Stolen Goods / Revolutional / GenUs</label>
-          <textarea id="kb-other" placeholder="Descrivi le altre etichette..."></textarea>
-        </div>
+    <div class="card" style="margin-bottom:24px;">
+      <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold); margin-bottom:16px;">Identità HOM</div>
+      <div class="field">
+        <label>Descrizione dell'azienda</label>
+        <textarea id="kb-desc" placeholder="Descrivi HOM in modo approfondito..."></textarea>
+      </div>
+      <div class="field">
+        <label>Valori e filosofia</label>
+        <textarea id="kb-values" placeholder="Es: indipendenza come vantaggio competitivo, song-driven model..."></textarea>
+      </div>
+      <div class="field">
+        <label>Target audience LinkedIn</label>
+        <textarea id="kb-audience" placeholder="Es: investitori, artisti indie, manager, addetti ai lavori..."></textarea>
       </div>
     </div>
 
-    <div class="kb-section">
-      <div class="kb-section-title">✦ News e Aggiornamenti</div>
-      <div class="card">
-        <div class="kb-field">
-          <label>Uscite recenti e progetti in corso</label>
-          <textarea id="kb-news" placeholder="Es: nuovo album di X uscito il..., apertura nuovo store, partnership con..., tour di..."></textarea>
-        </div>
-        <div class="kb-field">
-          <label>Milestone e traguardi</label>
-          <textarea id="kb-milestones" placeholder="Es: raggiunta distribuzione in X paesi, 10 milioni di stream, nuovo investimento..."></textarea>
-        </div>
-        <div class="kb-field">
-          <label>Hashtag preferiti</label>
-          <input type="text" id="kb-hashtags" placeholder="#MusicaIndipendente #HouseOfMusic #IndieMusic #MusicBusiness">
-        </div>
-      </div>
+    <div class="card" style="margin-bottom:24px;">
+      <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold); margin-bottom:16px;">Etichette e Artisti</div>
+      <div class="field"><label>Asian Fake</label><textarea id="kb-af" placeholder="Generi, artisti principali, successi recenti..."></textarea></div>
+      <div class="field"><label>FLUIDOSTUDIO</label><textarea id="kb-fluid" placeholder="Descrivi FLUIDOSTUDIO..."></textarea></div>
+      <div class="field"><label>Peroni Dischi</label><textarea id="kb-peroni" placeholder="Descrivi Peroni Dischi..."></textarea></div>
+      <div class="field"><label>Stolen Goods / Revolutional / GenUs</label><textarea id="kb-other" placeholder="Descrivi le altre etichette..."></textarea></div>
     </div>
 
-    <!-- KB SALVATA -->
-    <div class="kb-section">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-        <div class="kb-section-title" style="margin-bottom: 0;">◈ Dati attualmente salvati</div>
-        <button class="btn btn-ghost" onclick="toggleKbSaved()" id="kb-saved-toggle" style="font-size: 12px;">Mostra →</button>
-      </div>
-      <div id="kb-saved-content" style="display: none;">
-        <div class="card" id="kb-saved-display" style="font-size: 13px; line-height: 1.7; color: var(--gray-light); white-space: pre-wrap;"></div>
-      </div>
+    <div class="card">
+      <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold); margin-bottom:16px;">News e Aggiornamenti</div>
+      <div class="field"><label>Uscite recenti e progetti in corso</label><textarea id="kb-news" placeholder="Es: nuovo album, tour, partnership..."></textarea></div>
+      <div class="field"><label>Milestone e traguardi</label><textarea id="kb-milestones" placeholder="Es: dischi d'oro, stream record..."></textarea></div>
+      <div class="field"><label>Hashtag preferiti</label><input type="text" id="kb-hashtags" placeholder="#MusicaIndipendente #HouseOfMusic #IndieMusic"></div>
     </div>
   </div>
 
-  <!-- PROFILO LINKEDIN -->
+  <!-- ==================== PROFILO LINKEDIN ==================== -->
   <div class="view" id="view-profilo">
     <div class="page-header">
       <div>
         <div class="page-title">Profilo LinkedIn</div>
-        <div class="page-sub">Genera testi ottimizzati per il profilo HOM usando la Knowledge Base</div>
+        <div class="page-sub">Genera testi ottimizzati per il profilo HOM</div>
       </div>
-      <button class="btn btn-primary" onclick="generateProfile()" id="gen-profile-btn">👤 Genera con AI</button>
+      <button class="btn btn-primary" onclick="generateProfile()" id="gen-profile-btn">Genera con AI</button>
     </div>
-
+    <div id="profile-loading" style="display:none;">
+      <div class="empty-state"><div class="loading-dots" style="justify-content:center; margin-bottom:16px;"><span></span><span></span><span></span></div><div class="desc">Claude sta generando il profilo...</div></div>
+    </div>
     <div id="profile-result" style="display:none;">
-
-      <div class="card" style="margin-bottom: 20px;">
-        <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; color: var(--gold); margin-bottom: 12px;">📌 Titolo Professionale</div>
-        <div id="profile-headline" style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: var(--white); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 10px;"></div>
-        <button class="btn btn-outline" onclick="copyText('profile-headline')" style="font-size: 12px; padding: 6px 14px;">📋 Copia</button>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold);">Titolo Professionale</div>
+          <button class="btn btn-ghost btn-sm" onclick="copyText('profile-headline')">Copia</button>
+        </div>
+        <div id="profile-headline" style="font-size:14px; line-height:1.6; white-space:pre-wrap; padding:16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px;"></div>
       </div>
-
-      <div class="card" style="margin-bottom: 20px;">
-        <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; color: var(--gold); margin-bottom: 12px;">📝 About / Sommario <span style="font-size: 12px; color: var(--gray); font-weight: 400;" id="about-chars"></span></div>
-        <div id="profile-about" style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: var(--white); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 10px;"></div>
-        <button class="btn btn-outline" onclick="copyText('profile-about')" style="font-size: 12px; padding: 6px 14px;">📋 Copia</button>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold);">About / Sommario <span style="font-size:12px; color:var(--gray); font-weight:400;" id="about-chars"></span></div>
+          <button class="btn btn-ghost btn-sm" onclick="copyText('profile-about')">Copia</button>
+        </div>
+        <div id="profile-about" style="font-size:14px; line-height:1.6; white-space:pre-wrap; padding:16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px;"></div>
       </div>
-
       <div class="card">
-        <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; color: var(--gold); margin-bottom: 12px;">⭐ Spunti In Evidenza</div>
-        <div id="profile-featured" style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: var(--white); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 10px;"></div>
-        <button class="btn btn-outline" onclick="copyText('profile-featured')" style="font-size: 12px; padding: 6px 14px;">📋 Copia</button>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold);">Spunti In Evidenza</div>
+          <button class="btn btn-ghost btn-sm" onclick="copyText('profile-featured')">Copia</button>
+        </div>
+        <div id="profile-featured" style="font-size:14px; line-height:1.6; white-space:pre-wrap; padding:16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px;"></div>
       </div>
-
-    </div>
-
-    <div id="profile-loading" style="display:none; text-align: center; padding: 60px 20px;">
-      <div class="loading-dots" style="justify-content: center; margin-bottom: 16px;"><span></span><span></span><span></span></div>
-      <div style="font-size: 13px; color: var(--gray);">Claude sta generando il profilo ottimizzato...</div>
     </div>
   </div>
 
-  <!-- IMPOSTAZIONI -->
+  <!-- ==================== IMPOSTAZIONI ==================== -->
   <div class="view" id="view-impostazioni">
     <div class="page-header">
       <div>
         <div class="page-title">Impostazioni</div>
-        <div class="page-sub">Configura le API e i collegamenti tecnici</div>
+        <div class="page-sub">API e configurazione</div>
       </div>
     </div>
 
-    <div class="card" style="margin-bottom: 20px;">
-      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 20px; color: var(--gold);">API Anthropic (Claude)</div>
-      <div class="kb-field">
+    <div class="card" style="margin-bottom:24px;">
+      <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold); margin-bottom:16px;">API Anthropic (Claude)</div>
+      <div class="field">
         <label>API Key</label>
-        <div class="api-input-wrap">
-          <input type="password" id="anthropic-key" placeholder="sk-ant-...">
+        <div style="display:flex; gap:8px;">
+          <input type="password" id="api-key-input" placeholder="sk-ant-..." style="flex:1;">
           <button class="btn btn-outline" onclick="saveApiKey()">Salva</button>
           <button class="btn btn-ghost" onclick="testApiKey()">Test</button>
         </div>
-        <div style="font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace;">La chiave viene salvata solo nel browser locale</div>
+        <div style="font-size:11px; color:var(--gray); font-family:'DM Mono',monospace; margin-top:6px;">Salvata solo nel browser locale</div>
       </div>
     </div>
 
-    <div class="card" style="margin-bottom: 20px;">
-      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 20px; color: var(--gold);">LinkedIn API</div>
-      <div style="font-size: 13px; color: var(--gray-light); line-height: 1.6; margin-bottom: 16px;">
-        Per la pubblicazione automatica su LinkedIn serve configurare le API OAuth.
-        Segui la guida su <span style="color: var(--gold);">developer.linkedin.com</span> per ottenere Client ID e Secret.
+    <div class="card" style="margin-bottom:24px;">
+      <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold); margin-bottom:16px;">LinkedIn via N8N</div>
+      <div style="font-size:13px; color:var(--gray-light); line-height:1.6; margin-bottom:16px;">
+        Collega N8N per pubblicare direttamente su LinkedIn e leggere le metriche in automatico.
+        Crea 2 workflow in N8N con trigger Webhook, poi incolla qui le URL.
       </div>
-      <div class="kb-field">
-        <label>LinkedIn Client ID</label>
-        <input type="text" id="li-client-id" placeholder="86xxxxxx">
+      <div class="field">
+        <label>Webhook — Pubblica post</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="n8n-publish-url" placeholder="https://tuo-n8n.app/webhook/pubblica-linkedin" style="flex:1;">
+          <button class="btn btn-outline btn-sm" onclick="saveN8nConfig()">Salva</button>
+        </div>
+        <div style="font-size:11px; color:var(--gray); font-family:'DM Mono',monospace; margin-top:4px;">Riceve JSON: { text, scheduledDate, topic }. Deve restituire: { success, linkedinUrl, postUrn }</div>
       </div>
-      <div class="kb-field">
-        <label>LinkedIn Client Secret</label>
-        <input type="password" id="li-client-secret" placeholder="xxxxxxxx">
+      <div class="field">
+        <label>Webhook — Leggi metriche</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="n8n-metrics-url" placeholder="https://tuo-n8n.app/webhook/metriche-linkedin" style="flex:1;">
+          <button class="btn btn-outline btn-sm" onclick="saveN8nConfig()">Salva</button>
+        </div>
+        <div style="font-size:11px; color:var(--gray); font-family:'DM Mono',monospace; margin-top:4px;">Riceve JSON: { postUrn }. Deve restituire: { impressions, reactions, comments, shares }</div>
       </div>
-      <button class="btn btn-outline" onclick="showToast('Guida LinkedIn API in arrivo — da collegare con N8N', 'success')">
-        Collega tramite N8N →
-      </button>
+      <div id="n8n-status" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+        <div class="api-dot" id="n8n-dot"></div>
+        <span style="font-size:11px; color:var(--gray); font-family:'DM Mono',monospace;" id="n8n-status-text">Non configurato</span>
+      </div>
+      <details style="margin-top:16px;">
+        <summary style="cursor:pointer; font-family:'DM Mono',monospace; font-size:11px; color:var(--gold); letter-spacing:0.1em;">GUIDA SETUP N8N</summary>
+        <div style="font-size:12px; color:var(--gray-light); line-height:1.7; margin-top:12px; padding:16px; background:rgba(255,255,255,0.02); border-radius:6px;">
+          <strong style="color:var(--white);">1. Workflow "Pubblica Post"</strong><br>
+          Trigger: Webhook (POST) → LinkedIn: Create Post (con OAuth2) → Respond to Webhook<br>
+          Il nodo LinkedIn riceve il campo <code style="color:var(--gold);">text</code> dal body e pubblica come post della pagina aziendale HOM.<br>
+          Risposta: <code style="color:var(--gold);">{ "success": true, "linkedinUrl": "...", "postUrn": "urn:li:share:..." }</code><br><br>
+          <strong style="color:var(--white);">2. Workflow "Leggi Metriche"</strong><br>
+          Trigger: Webhook (POST) → LinkedIn: Get Post Stats → Respond to Webhook<br>
+          Riceve <code style="color:var(--gold);">postUrn</code>, interroga l'API LinkedIn per le stats del post.<br>
+          Risposta: <code style="color:var(--gold);">{ "impressions": 1200, "reactions": 45, "comments": 12, "shares": 8 }</code><br><br>
+          <strong style="color:var(--white);">3. Notifiche (opzionale)</strong><br>
+          Aggiungi un terzo workflow con Cron trigger che controlla i post pianificati e ti manda una notifica Telegram/email quando è ora di pubblicare.
+        </div>
+      </details>
     </div>
 
-    <div class="card">
-      <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 20px; color: var(--gold);">Frequenza pubblicazione</div>
-      <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
-        <div class="kb-field" style="text-align: center;" id="day-lun">
-          <label>Lun</label>
-          <input type="checkbox" data-day="lun" style="width: auto; margin: 0 auto;">
-        </div>
-        <div class="kb-field" style="text-align: center;">
-          <label>Mar</label>
-          <input type="checkbox" data-day="mar" style="width: auto; margin: 0 auto;">
-        </div>
-        <div class="kb-field" style="text-align: center;">
-          <label>Mer</label>
-          <input type="checkbox" data-day="mer" style="width: auto; margin: 0 auto;" checked>
-        </div>
-        <div class="kb-field" style="text-align: center;">
-          <label>Gio</label>
-          <input type="checkbox" data-day="gio" style="width: auto; margin: 0 auto;">
-        </div>
-        <div class="kb-field" style="text-align: center;">
-          <label>Ven</label>
-          <input type="checkbox" data-day="ven" style="width: auto; margin: 0 auto;" checked>
-        </div>
-        <div class="kb-field" style="text-align: center;">
-          <label>Sab</label>
-          <input type="checkbox" data-day="sab" style="width: auto; margin: 0 auto;">
-        </div>
-        <div class="kb-field" style="text-align: center;">
-          <label>Dom</label>
-          <input type="checkbox" data-day="dom" style="width: auto; margin: 0 auto;">
-        </div>
+    <div class="card" style="margin-bottom:24px;">
+      <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold); margin-bottom:16px;">Frequenza pubblicazione</div>
+      <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-bottom:16px;">
+        <div class="field" style="text-align:center;"><label>Lun</label><input type="checkbox" data-day="lun" style="width:auto; margin:0 auto;"></div>
+        <div class="field" style="text-align:center;"><label>Mar</label><input type="checkbox" data-day="mar" style="width:auto; margin:0 auto;" checked></div>
+        <div class="field" style="text-align:center;"><label>Mer</label><input type="checkbox" data-day="mer" style="width:auto; margin:0 auto;" checked></div>
+        <div class="field" style="text-align:center;"><label>Gio</label><input type="checkbox" data-day="gio" style="width:auto; margin:0 auto;"></div>
+        <div class="field" style="text-align:center;"><label>Ven</label><input type="checkbox" data-day="ven" style="width:auto; margin:0 auto;" checked></div>
+        <div class="field" style="text-align:center;"><label>Sab</label><input type="checkbox" data-day="sab" style="width:auto; margin:0 auto;"></div>
+        <div class="field" style="text-align:center;"><label>Dom</label><input type="checkbox" data-day="dom" style="width:auto; margin:0 auto;"></div>
       </div>
-      <div class="kb-field" style="margin-top: 12px;">
-        <label>Orario preferito</label>
-        <input type="time" id="post-time" value="09:00" style="max-width: 150px;">
-      </div>
-    </div>
-  </div>
-
-  <!-- AGGIORNA APP -->
-  <div class="view" id="view-aggiorna">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Aggiorna App</div>
-        <div class="page-sub">Scrivi le modifiche — Claude le applica e pubblica su GitHub</div>
-      </div>
+      <div class="field"><label>Orario preferito</label><input type="time" id="post-time" value="09:00" style="max-width:150px;"></div>
     </div>
 
-    <!-- TOKEN CONFIG -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-      <div class="card" style="padding: 16px;">
-        <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gray); margin-bottom: 8px;">GitHub Token</div>
-        <div class="api-input-wrap" style="margin-bottom: 0;">
-          <input type="password" id="github-token-input" placeholder="ghp_..." style="font-size: 12px;">
-          <button class="btn btn-outline" onclick="saveGithubToken()" style="white-space: nowrap;">Salva</button>
-        </div>
-        <div id="github-token-status" style="font-size: 11px; color: var(--green); margin-top: 6px; font-family: 'DM Mono', monospace;"></div>
-      </div>
-      <div class="card" style="padding: 16px;">
-        <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gray); margin-bottom: 8px;">API Anthropic</div>
-        <div style="font-size: 12px; color: var(--gray-light); display: flex; align-items: center; gap: 8px; height: 40px;">
-          <div class="api-dot" id="update-api-dot"></div>
-          <span id="update-api-status">Non configurata — vai in Impostazioni</span>
-        </div>
-        <button class="btn btn-ghost" onclick="showView('knowledge')" style="font-size: 12px; padding: 4px 8px; margin-top: 4px;">◉ Knowledge Base →</button>
-      </div>
-    </div>
-
-    <!-- CHAT -->
-    <div class="card" style="display: flex; flex-direction: column; height: 520px; padding: 0; overflow: hidden;">
-
-      <!-- messaggi -->
-      <div id="update-chat-messages" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
-        <div style="text-align: center; padding: 40px 20px;">
-          <div style="font-size: 32px; margin-bottom: 12px;">⚡</div>
-          <div style="font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 8px;">Pronto ad aggiornare l'app</div>
-          <div style="font-size: 13px; color: var(--gray); line-height: 1.6;">Descrivi le modifiche che vuoi fare.<br>Claude legge il codice, applica i cambiamenti e pubblica su GitHub.</div>
-        </div>
-      </div>
-
-      <!-- input area -->
-      <div style="border-top: 1px solid var(--border); padding: 16px; background: rgba(0,0,0,0.2);">
-        <div style="display: flex; gap: 10px; align-items: flex-end;">
-          <textarea id="update-chat-input"
-            placeholder="Es: aggiungi un bottone per duplicare i post, cambia il colore primario in blu, aggiungi un campo note nella scheda post..."
-            style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 13px; resize: none; outline: none; line-height: 1.5; min-height: 48px; max-height: 120px; transition: border-color 0.2s;"
-            onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendUpdateMessage();}"
-            oninput="this.style.height='48px';this.style.height=Math.min(this.scrollHeight,120)+'px';"
-            onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
-          <button onclick="sendUpdateMessage()" id="update-send-btn"
-            style="background: var(--gold); color: var(--black); border: none; border-radius: 8px; width: 44px; height: 44px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;"
-            onmouseover="this.style.background='var(--gold-light)'" onmouseout="this.style.background='var(--gold)'">↑</button>
-        </div>
-        <div style="font-size: 11px; color: var(--gray); font-family: 'DM Mono', monospace; margin-top: 8px;">Enter per inviare · Shift+Enter per andare a capo</div>
+    <div class="card" style="border-color:rgba(201,79,58,0.3);">
+      <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--red); margin-bottom:16px;">Zona pericolosa</div>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <button class="btn btn-danger" onclick="resetAllPosts()">Cancella tutti i post</button>
+        <span style="font-size:12px; color:var(--gray);">Elimina tutti i post (approvati, pianificati, pubblicati). La Knowledge Base non viene toccata.</span>
       </div>
     </div>
   </div>
 
 </main>
 
-<!-- MODAL CALENDARIO — aggiungi post su data -->
-<div class="modal-overlay" id="cal-add-modal">
-  <div class="modal" style="max-width: 560px;">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title">Aggiungi post</div>
-        <div id="cal-add-date-label" style="font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); margin-top:4px;"></div>
-      </div>
-      <button class="btn btn-ghost" onclick="closeCalModal()">✕</button>
-    </div>
-
-    <!-- Post già presenti su questa data -->
-    <div id="cal-modal-existing" style="display:none; margin-bottom:16px;"></div>
-
-    <!-- Tab selector -->
-    <div style="display:flex; gap:8px; margin-bottom:20px;">
-      <button id="tab-manual" onclick="switchCalTab('manual')" style="flex:1; padding:10px; border-radius:6px; border:1px solid var(--gold); background:var(--gold); color:var(--black); font-family:'Syne',sans-serif; font-weight:600; font-size:12px; cursor:pointer;">✍️ Manuale</button>
-      <button id="tab-ai" onclick="switchCalTab('ai')" style="flex:1; padding:10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--gray-light); font-family:'Syne',sans-serif; font-weight:600; font-size:12px; cursor:pointer;">✦ Genera con AI</button>
-      <button id="tab-existing" onclick="switchCalTab('existing')" style="flex:1; padding:10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--gray-light); font-family:'Syne',sans-serif; font-weight:600; font-size:12px; cursor:pointer;">📋 Da bozze</button>
-    </div>
-
-    <!-- Tab: Manuale -->
-    <div id="cal-tab-manual">
-      <div class="kb-field">
-        <label>Testo del post</label>
-        <textarea id="cal-manual-text" class="post-editor" placeholder="Scrivi il testo del post..." style="min-height:180px;"></textarea>
-        <div class="char-count" id="cal-manual-char">0 / 1300</div>
-      </div>
-      <div class="kb-field">
-        <label>Orario</label>
-        <input type="time" id="cal-manual-time" value="10:00" style="max-width:120px;">
-      </div>
-      <button class="btn btn-primary" onclick="saveCalPost('manual')" style="width:100%; justify-content:center; padding:12px; margin-top:8px;">✓ Aggiungi al Piano →</button>
-    </div>
-
-    <!-- Tab: AI -->
-    <div id="cal-tab-ai" style="display:none;">
-      <div class="kb-field">
-        <label>Tipo di contenuto (opzionale)</label>
-        <select id="cal-ai-topic">
-          <option value="">— Automatico per questa data —</option>
-          <option value="Pensiero sul futuro della musica indipendente">Pensiero sull'industria</option>
-          <option value="Presentazione di un'etichetta o artista">Presentazione etichetta/artista</option>
-          <option value="Behind the scenes — come lavora HOM">Behind the scenes HOM</option>
-          <option value="Riflessione sul modello ecosistema vs major">Business model</option>
-          <option value="Cultura e valori — indipendenza e libertà artistica">Cultura e valori</option>
-          <option value="Annuncio uscita discografica o progetto">Uscita discografica</option>
-        </select>
-      </div>
-      <div class="kb-field">
-        <label>Orario</label>
-        <input type="time" id="cal-ai-time" value="10:00" style="max-width:120px;">
-      </div>
-      <div id="cal-ai-result" style="display:none; margin-bottom:16px;">
-        <label style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--gray); display:block; margin-bottom:6px;">Post generato — modifica se vuoi</label>
-        <textarea id="cal-ai-text" class="post-editor" style="min-height:160px;"></textarea>
-        <div class="char-count" id="cal-ai-char">0 / 1300</div>
-      </div>
-      <div style="display:flex; gap:8px; margin-top:8px;">
-        <button class="btn btn-outline" onclick="generateCalPost()" id="cal-ai-gen-btn" style="flex:1; justify-content:center; padding:12px;">✦ Genera con AI</button>
-        <button class="btn btn-primary" onclick="saveCalPost('ai')" id="cal-ai-save-btn" style="flex:1; justify-content:center; padding:12px; display:none;">✓ Aggiungi al Piano →</button>
-      </div>
-    </div>
-
-    <!-- Tab: Da bozze/pending -->
-    <div id="cal-tab-existing" style="display:none;">
-      <div class="kb-field">
-        <label>Orario</label>
-        <input type="time" id="cal-existing-time" value="10:00" style="max-width:120px; margin-bottom:16px;">
-      </div>
-      <div id="cal-existing-list" style="max-height:280px; overflow-y:auto;"></div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL REVIEW POST -->
-<div class="modal-overlay" id="review-modal">
+<!-- ==================== MODAL: MODIFICA POST ==================== -->
+<div class="modal-overlay" id="edit-modal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">Revisiona Post</div>
-      <button class="btn btn-ghost" onclick="closeModal()">✕</button>
+      <div class="modal-title">Modifica Post</div>
+      <button class="btn btn-ghost" onclick="closeEditModal()">✕</button>
     </div>
     <div class="editor-layout">
       <div>
-        <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--gray); margin-bottom: 8px; text-transform: uppercase;">Modifica testo</div>
-        <textarea class="post-editor" id="modal-editor" oninput="updateModalPreview()"></textarea>
-        <div class="char-count" id="modal-char">0 / 1300</div>
-        <div style="display: flex; gap: 8px; margin-top: 16px;">
-          <button class="btn btn-success" onclick="publishPost()" style="flex: 1; justify-content: center;">✓ Approva</button>
-          <button class="btn btn-danger" onclick="deletePost()">Elimina</button>
-          <button class="btn btn-ghost" onclick="closeModal()">Annulla</button>
+        <div class="section-label">Testo</div>
+        <textarea class="post-editor" id="edit-text" oninput="updateEditPreview()"></textarea>
+        <div class="char-count" id="edit-char">0 / 1300</div>
+        <div style="display:flex; gap:8px; margin-top:16px;">
+          <button class="btn btn-primary" onclick="saveEdit()">Salva modifiche</button>
+          <button class="btn btn-ghost" onclick="closeEditModal()">Annulla</button>
         </div>
       </div>
       <div>
-        <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--gray); margin-bottom: 12px; text-transform: uppercase;">Anteprima LinkedIn</div>
+        <div class="section-label">Anteprima LinkedIn</div>
         <div class="linkedin-preview">
           <div class="li-header">
             <div class="li-avatar">H</div>
-            <div>
-              <div class="li-name">House of Music</div>
-              <div class="li-sub">Independent Music Ecosystem · Milano</div>
-            </div>
+            <div><div class="li-name">House of Music</div><div class="li-sub">Independent Music Ecosystem · Milano</div></div>
           </div>
-          <div class="li-body" id="modal-preview"></div>
+          <div class="li-body" id="edit-preview"></div>
           <div class="li-footer">
             <span class="li-action">👍 Mi piace</span>
             <span class="li-action">💬 Commenta</span>
@@ -1365,551 +610,328 @@
   </div>
 </div>
 
+<!-- ==================== MODAL: PUBBLICA POST ==================== -->
+<div class="modal-overlay" id="publish-modal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <div class="modal-title" id="pub-modal-title">Pubblica su LinkedIn</div>
+      <button class="btn btn-ghost" onclick="closePublishModal()">✕</button>
+    </div>
+
+    <!-- Anteprima post -->
+    <div id="pub-preview" style="margin-bottom:20px;"></div>
+
+    <!-- Modo N8N: pubblica automaticamente -->
+    <div id="pub-mode-n8n" style="display:none;">
+      <div style="font-size:13px; color:var(--gray-light); margin-bottom:16px; line-height:1.5;">Il post verrà pubblicato direttamente su LinkedIn tramite N8N. Le metriche verranno lette in automatico.</div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-success" onclick="publishViaN8n()" id="pub-n8n-btn" style="flex:1; justify-content:center; padding:14px; font-size:14px;">Pubblica ora su LinkedIn</button>
+        <button class="btn btn-ghost" onclick="closePublishModal()">Annulla</button>
+      </div>
+    </div>
+
+    <!-- Modo manuale: segna come pubblicato -->
+    <div id="pub-mode-manual">
+      <div style="font-size:13px; color:var(--gray-light); margin-bottom:16px; line-height:1.5;">Pubblica manualmente su LinkedIn, poi torna qui per segnarlo e aggiungere le metriche.</div>
+      <div class="field"><label>URL del post LinkedIn (opzionale)</label><input type="text" id="pub-url" placeholder="https://linkedin.com/feed/update/..."></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="field"><label>Impressioni</label><input type="number" id="pub-impressions" placeholder="0" min="0"></div>
+        <div class="field"><label>Reazioni</label><input type="number" id="pub-reactions" placeholder="0" min="0"></div>
+        <div class="field"><label>Commenti</label><input type="number" id="pub-comments" placeholder="0" min="0"></div>
+        <div class="field"><label>Condivisioni</label><input type="number" id="pub-shares" placeholder="0" min="0"></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn btn-success" onclick="confirmPublish()" style="flex:1; justify-content:center;">Segna come pubblicato</button>
+        <button class="btn btn-ghost" onclick="closePublishModal()">Annulla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ===== FIREBASE =====
-// Firebase già inizializzato con SDK compat in testa al documento
-// window.db è disponibile globalmente
-
-// =================================================================
-// ⚠️ REGOLA FONDAMENTALE PER CLAUDE — NON MODIFICARE QUESTO BLOCCO
-// MAI usare newline letterali dentro stringhe JS con apici ' o "
-// USA SEMPRE \n per i newline nelle stringhe JS
-// CORRETTO: var x = 'riga1\nriga2';
-// SBAGLIATO: var x = 'riga1' + newline + 'riga2'; (newline letterale)
-// Questo vale per TUTTE le stringhe JS nel file, specialmente i prompt.
-// =================================================================
-
-async function saveToFirebase(key, data) {
-  // Firebase rimosso — dati salvati solo in localStorage
-}
-
-async function loadFromFirebase(key) {
-  // Firebase rimosso — dati caricati solo da localStorage
-  return null;
-}
+// ==========================================================
+// HOM LinkedIn Manager — Clean Version
+// ==========================================================
 
 // ===== STATE =====
-let posts = JSON.parse(localStorage.getItem('hom_posts') || '[]');
-let knowledge = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
-let currentEditId = null;
-let calendarDate = new Date();
-let currentFilter = 'all';
+var posts = JSON.parse(localStorage.getItem('hom_posts') || '[]');
+var knowledge = {};
+var calendarDate = new Date();
+var currentFilter = 'all';
+var _editId = null;
+var _publishId = null;
+var _proposals = [];
 
 // ===== INIT =====
-async function init() {
-  const fbKnowledge = await loadFromFirebase('knowledge');
-  if (fbKnowledge) {
-    knowledge = fbKnowledge;
-    localStorage.setItem('hom_knowledge', JSON.stringify(knowledge));
-  }
-  const fbPosts = await loadFromFirebase('posts');
-  if (fbPosts) {
-    posts = fbPosts;
-    localStorage.setItem('hom_posts', JSON.stringify(posts));
-  }
+function init() {
   loadKnowledge();
   checkApiKey();
-  renderDashboard();
+  checkN8n();
   renderCalendar();
   renderStorico();
-  updateStats();
-  // Apri Piano Editoriale come vista principale
-  showView('calendario');
-  showToast('✓ Pronto', 'success');
+  renderAnalytics();
+  updateBadge();
+  checkReadyPosts();
 }
 
 // ===== NAVIGATION =====
-function showView(name) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('view-' + name).classList.add('active');
-  const navItems = document.querySelectorAll('.nav-item');
-  navItems.forEach(item => {
-    if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(name)) {
-      item.classList.add('active');
-    }
+function showView(id) {
+  document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var view = document.getElementById('view-' + id);
+  if (view) view.classList.add('active');
+  var navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(function(n) {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) n.classList.add('active');
   });
-  if (name === 'calendario') renderCalendar();
-  if (name === 'storico') renderStorico();
-  if (name === 'dashboard') renderDashboard();
-  if (name === 'aggiorna') initUpdateView();
+  if (id === 'piano') { renderReadyPosts(); renderPianoPending(); renderCalendar(); }
+  if (id === 'storico') renderStorico();
+  if (id === 'analytics') renderAnalytics();
 }
 
-// ===== API KEY =====
-function saveApiKey() {
-  const key = document.getElementById('anthropic-key').value.trim();
-  if (key) {
-    localStorage.setItem('hom_api_key', key);
-    checkApiKey();
-    showToast('API Key salvata con successo', 'success');
-  }
-}
-
+// ===== API =====
 function checkApiKey() {
-  const key = localStorage.getItem('hom_api_key');
-  const dot = document.getElementById('api-dot');
-  const txt = document.getElementById('api-status-text');
-  if (key && key.startsWith('sk-ant')) {
-    dot.classList.add('ok');
-    txt.textContent = 'API attiva';
-    const input = document.getElementById('anthropic-key');
-    if (input) input.value = key;
-  } else {
-    dot.classList.remove('ok');
-    txt.textContent = 'API non configurata';
-  }
+  var key = localStorage.getItem('hom_api_key');
+  var dot = document.getElementById('api-dot');
+  var txt = document.getElementById('api-status-text');
+  if (key) { dot.classList.add('ok'); txt.textContent = 'API attiva'; }
+  else { dot.classList.remove('ok'); txt.textContent = 'API non configurata'; }
+}
+
+function saveApiKey() {
+  var key = document.getElementById('api-key-input').value.trim();
+  if (!key) { showToast('Inserisci una API key', 'error'); return; }
+  localStorage.setItem('hom_api_key', key);
+  checkApiKey();
+  showToast('API Key salvata', 'success');
 }
 
 async function testApiKey() {
-  const key = localStorage.getItem('hom_api_key');
-  if (!key) { showToast('Inserisci prima una API key', 'error'); return; }
-  showToast('Test in corso...', 'success');
+  var key = localStorage.getItem('hom_api_key');
+  if (!key) { showToast('Salva prima la API Key', 'error'); return; }
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      mode: 'cors',
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 10, messages: [{ role: 'user', content: 'test' }] })
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 10, messages: [{ role: 'user', content: 'Rispondi OK' }] })
     });
-    if (res.ok) { showToast('✓ API funzionante!', 'success'); document.getElementById('api-dot').classList.add('ok'); }
-    else { showToast('Errore API — controlla la chiave', 'error'); }
-  } catch(e) { showToast('Errore di connessione', 'error'); }
+    if (res.ok) showToast('API funzionante!', 'success');
+    else showToast('Errore API: ' + res.status, 'error');
+  } catch(e) { showToast('Errore connessione', 'error'); }
 }
 
-// ===== GENERATE POSTS (nuovo flusso multi-proposta) =====
+function buildSystemPrompt(kb) {
+  var starred = posts.filter(function(p) { return p.starred && p.status === 'published'; });
+  var starredText = starred.length > 0 ? '\n\nEsempi di post che hanno funzionato bene:\n' + starred.map(function(p) { return '---\n' + p.text; }).join('\n') : '';
+  return 'Sei il social media manager di House of Music (HOM), ecosistema musicale indipendente di Milano.\n\n' +
+    'INFORMAZIONI HOM:\n' +
+    (kb.desc ? 'Descrizione: ' + kb.desc + '\n' : '') +
+    (kb.values ? 'Valori: ' + kb.values + '\n' : '') +
+    (kb.audience ? 'Target: ' + kb.audience + '\n' : '') +
+    (kb.af ? 'Asian Fake: ' + kb.af + '\n' : '') +
+    (kb.fluid ? 'FLUIDOSTUDIO: ' + kb.fluid + '\n' : '') +
+    (kb.peroni ? 'Peroni Dischi: ' + kb.peroni + '\n' : '') +
+    (kb.other ? 'Altre etichette: ' + kb.other + '\n' : '') +
+    (kb.news ? 'News recenti: ' + kb.news + '\n' : '') +
+    (kb.milestones ? 'Milestone: ' + kb.milestones + '\n' : '') +
+    (kb.hashtags ? 'Hashtag da usare: ' + kb.hashtags + '\n' : '') +
+    starredText +
+    '\n\nREGOLE:\n- Max 1300 caratteri per post\n- Tono professionale ma autentico\n- Includi hashtag alla fine\n- Scrivi in italiano\n- Non usare emoji eccessive\n- Ogni post deve avere un hook forte nella prima riga';
+}
+
+// ===== GENERATE POSTS =====
 async function generatePosts() {
-  var key = localStorage.getItem('hom_api_key');
-  if (!key) { showToast('Configura prima la API key in Impostazioni', 'error'); showView('impostazioni'); return; }
+  var apiKey = localStorage.getItem('hom_api_key');
+  if (!apiKey) { showToast('Configura la API Key nelle Impostazioni', 'error'); return; }
 
-  var btn = document.getElementById('gen-btn');
-  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Generazione in corso...';
-  btn.disabled = true;
-
-  var count = parseInt(document.getElementById('gen-count').value) || 3;
+  var count = parseInt(document.getElementById('gen-count').value);
   var topic = document.getElementById('gen-topic').value;
   var tone = document.getElementById('gen-tone').value;
   var label = document.getElementById('gen-label').value;
   var notes = document.getElementById('gen-notes').value;
-  // Sempre ricarica KB da localStorage per avere i dati più aggiornati
-  var kb = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
-  knowledge = kb;
+  var kb = knowledge;
 
-  var systemPrompt = buildSystemPrompt(kb);
-  var userPrompt = 'Genera esattamente ' + count + ' post LinkedIn DIVERSI tra loro per House of Music.' +
-    (topic ? ' Tema: ' + topic + '.' : '') +
-    (label ? ' Focus etichetta: ' + label + '.' : '') +
-    ' Tono: ' + tone + '.' +
-    (notes ? ' Note: ' + notes + '.' : '') +
-    '\n\nRispondi SOLO con un array JSON in questo formato (niente altro, niente markdown):\n' +
-    '[{"topic":"titolo breve del tema","text":"testo completo del post"}]';
+  var btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Generando...';
+
+  var prompt = 'Genera ' + count + ' post LinkedIn per House of Music.';
+  if (topic) prompt += ' Tema: ' + topic + '.';
+  if (label) prompt += ' Focus sull\'etichetta: ' + label + '.';
+  if (tone) prompt += ' Tono: ' + tone + '.';
+  if (notes) prompt += ' Note: ' + notes + '.';
+  prompt += ' La data di oggi è ' + new Date().toLocaleDateString('it-IT', {weekday:'long', year:'numeric', month:'long', day:'numeric'}) + '.';
+  prompt += '\n\nRispondi SOLO con un JSON array. Ogni elemento ha: "text" (il post completo), "topic" (tema breve, 2-3 parole). Nessun altro testo fuori dal JSON.';
 
   try {
     var res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4000, system: buildSystemPrompt(kb), messages: [{ role: 'user', content: prompt }] })
     });
 
     var data = await res.json();
-    var text = data.content[0].text.trim();
-    // Pulizia backtick
-    if (text.startsWith('```')) text = text.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '').trim();
-    var proposals = JSON.parse(text);
+    if (!res.ok) throw new Error(data.error ? data.error.message : 'Errore API');
 
-    window._proposals = proposals;
-    renderProposals(proposals);
-    document.getElementById('gen-proposals').style.display = 'block';
-    showToast(proposals.length + ' proposte generate!', 'success');
+    var raw = data.content[0].text.trim();
+    var jsonMatch = raw.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('Risposta AI non valida');
+
+    _proposals = JSON.parse(jsonMatch[0]);
+    renderProposals();
+    showToast(_proposals.length + ' proposte generate!', 'success');
 
   } catch(e) {
-    showToast('Errore generazione — riprova', 'error');
-    console.error(e);
+    showToast('Errore: ' + e.message, 'error');
   }
 
-  btn.innerHTML = '✦ Genera Proposte con AI';
   btn.disabled = false;
+  btn.innerHTML = '✦ Genera Proposte con AI';
 }
 
-function renderProposals(proposals) {
-  var list = document.getElementById('proposals-list');
-  list.innerHTML = '';
+function renderProposals() {
+  var container = document.getElementById('proposals-list');
+  var wrap = document.getElementById('gen-proposals');
+  if (!_proposals.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
 
-  if (!proposals.length) {
-    // Tutti approvati — conta quanti ne abbiamo approvati
-    var approvedCount = posts.filter(function(p) {
-      return p.status === 'pending' && !p.scheduledDate;
-    }).length;
+  container.innerHTML = _proposals.map(function(p, i) {
+    return '<div class="post-card" id="proposal-' + i + '">' +
+      '<div class="post-card-header">' +
+        '<span class="post-card-status pending">Proposta ' + (i + 1) + '</span>' +
+        '<span class="post-card-topic">' + (p.topic || 'AI') + '</span>' +
+      '</div>' +
+      '<div style="font-size:14px; line-height:1.6; margin-bottom:14px; white-space:pre-wrap;">' + escapeHtml(p.text) + '</div>' +
+      '<div style="font-family:\'DM Mono\',monospace; font-size:11px; color:var(--gray); margin-bottom:12px;">' + (p.text || '').length + ' / 1300 caratteri</div>' +
+      '<div class="post-card-actions">' +
+        '<button class="btn btn-success btn-sm" onclick="approveSingle(' + i + ')">Approva</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="discardSingle(' + i + ')">Scarta</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
 
-    document.getElementById('gen-proposals').style.display = 'block';
-    list.innerHTML =
-      '<div style="text-align:center; padding: 40px 20px;">' +
-        '<div style="font-size: 48px; margin-bottom: 16px;">✦</div>' +
-        '<div style="font-family:\'Syne\',sans-serif; font-weight:700; font-size:20px; color:var(--white); margin-bottom:8px;">Post approvati!</div>' +
-        '<div style="font-size:14px; color:var(--gray-light); margin-bottom:24px;">' +
-          (approvedCount > 0
-            ? approvedCount + ' post approvati. Ora pianifica quando pubblicarli.'
-            : 'Post approvati e salvati.') +
-        '</div>' +
-        '<div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">' +
-          '<button onclick="showView(\'calendario\')" style="background:var(--gold);color:var(--black);border:none;padding:14px 28px;border-radius:8px;cursor:pointer;font-family:Syne,sans-serif;font-weight:700;font-size:14px;">📅 Crea Piano Editoriale →</button>' +
-          '<button onclick="document.getElementById(\'gen-proposals\').style.display=\'none\';" style="background:transparent;color:var(--gray-light);border:1px solid var(--border);padding:14px 24px;border-radius:8px;cursor:pointer;font-family:Syne,sans-serif;font-size:13px;">Genera altri post</button>' +
-        '</div>' +
-      '</div>';
+function approveSingle(i) {
+  var p = _proposals[i];
+  if (!p) return;
+  posts.unshift({ id: Date.now() + i, text: p.text, status: 'pending', created: new Date().toISOString(), topic: p.topic || 'AI', tone: document.getElementById('gen-tone').value || '', label: document.getElementById('gen-label').value || '' });
+  savePosts();
+  _proposals.splice(i, 1);
+  renderProposals();
+  updateBadge();
+  showToast('Post approvato!', 'success');
+}
+
+function discardSingle(i) {
+  _proposals.splice(i, 1);
+  renderProposals();
+}
+
+function approveAll() {
+  _proposals.forEach(function(p, i) {
+    posts.unshift({ id: Date.now() + i, text: p.text, status: 'pending', created: new Date().toISOString(), topic: p.topic || 'AI', tone: document.getElementById('gen-tone').value || '', label: document.getElementById('gen-label').value || '' });
+  });
+  savePosts();
+  var n = _proposals.length;
+  _proposals = [];
+  renderProposals();
+  updateBadge();
+  showToast(n + ' post approvati!', 'success');
+}
+
+function discardAll() {
+  _proposals = [];
+  renderProposals();
+  showToast('Proposte scartate', 'success');
+}
+
+// ===== PIANO EDITORIALE =====
+function renderPianoPending() {
+  var pending = posts.filter(function(p) { return p.status === 'pending' && !p.scheduledDate; });
+  var el = document.getElementById('piano-pending');
+  if (!pending.length) {
+    el.innerHTML = '<div class="card" style="text-align:center; padding:32px; margin-bottom:0;">' +
+      '<div style="font-size:13px; color:var(--gray);">Nessun post da pianificare — <span style="color:var(--gold); cursor:pointer;" onclick="showView(\'genera\')">genera nuovi post</span></div></div>';
     return;
   }
-
-  proposals.forEach(function(p, i) {
-    var charCount = p.text.length;
-    var charColor = charCount > 1300 ? 'var(--red)' : charCount > 1000 ? 'var(--gold)' : 'var(--green)';
-    var card = document.createElement('div');
-    card.className = 'post-card';
-    card.id = 'proposal-' + i;
-    card.innerHTML =
-      '<div style="display: flex; align-items: flex-start; gap: 12px;">' +
-        '<div style="flex: 1;">' +
-          '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">' +
-            '<div style="font-family: DM Mono, monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold);">' + (p.topic || 'Post ' + (i+1)) + '</div>' +
-            '<div style="font-size: 11px; font-family: DM Mono, monospace; color: ' + charColor + ';">' + charCount + ' / 1300</div>' +
-          '</div>' +
-          '<div style="font-size: 13px; line-height: 1.6; color: var(--white); white-space: pre-wrap; margin-bottom: 12px;">' + p.text + '</div>' +
-          '<div style="background: #1b1f23; border-radius: 8px; padding: 14px; border: 1px solid #333; margin-bottom: 12px;">' +
-            '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">' +
-              '<div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #c8a96e, #8b6a30); display: flex; align-items: center; justify-content: center; font-family: Syne, sans-serif; font-weight: 800; font-size: 14px; color: #0a0a0a;">H</div>' +
-              '<div><div style="font-weight: 600; font-size: 13px; color: #e8e6e3;">House of Music</div><div style="font-size: 11px; color: #9b9b9b;">Independent Music Ecosystem · Milano</div></div>' +
-            '</div>' +
-            '<div style="font-size: 13px; line-height: 1.6; color: #e0ddd9; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">' + p.text + '</div>' +
-            '<div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #333; display: flex; gap: 16px;">' +
-              '<span style="font-size: 11px; color: #9b9b9b;">👍 Mi piace</span>' +
-              '<span style="font-size: 11px; color: #9b9b9b;">💬 Commenta</span>' +
-              '<span style="font-size: 11px; color: #9b9b9b;">↗ Condividi</span>' +
-            '</div>' +
-          '</div>' +
-          '<div style="display: flex; gap: 8px;">' +
-            '<button onclick="approveSingle(' + i + ')" style="flex:1; background:var(--green); color:white; border:none; padding:10px; border-radius:6px; cursor:pointer; font-family:Syne,sans-serif; font-weight:600; font-size:13px;">✓ Approva</button>' +
-            '<button onclick="deleteProposal(' + i + ')" style="background:none; border:1px solid var(--border); color:var(--gray); padding:10px 14px; border-radius:6px; cursor:pointer; font-size:13px;">🗑️</button>' +
-          '</div>' +
+  el.innerHTML = '<div class="section-label">' + pending.length + ' post da pianificare</div>' +
+    pending.map(function(p) {
+      return '<div class="post-card">' +
+        '<div class="post-card-header">' +
+          '<span class="post-card-status pending">Da pianificare</span>' +
+          '<span class="post-card-topic">' + (p.topic || '') + '</span>' +
+        '</div>' +
+        '<div class="post-card-text">' + escapeHtml((p.text || '').substring(0, 180)) + '</div>' +
+        '<div class="post-card-actions">' +
+          '<button class="btn btn-outline btn-sm" onclick="openEdit(' + p.id + ')">Modifica</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="deletePost(' + p.id + ')">Elimina</button>' +
         '</div>' +
       '</div>';
-    list.appendChild(card);
-  });
+    }).join('');
 }
 
-function approveSingle(index) {
-  if (!window._proposals || !window._proposals[index]) return;
-  var p = window._proposals[index];
-  posts.unshift({
-    id: Date.now() + Math.random(),
-    text: p.text,
-    status: 'pending',
-    created: new Date().toISOString(),
-    scheduledDate: null,
-    topic: p.topic || 'AI'
-  });
-  savePosts();
-  renderDashboard();
-  updateStats();
-  window._proposals.splice(index, 1);
-  renderProposals(window._proposals);
-  showToast('✓ Post approvato!', 'success');
-}
-
-function deleteProposal(index) {
-  if (!window._proposals) return;
-  window._proposals.splice(index, 1);
-  renderProposals(window._proposals);
-  if (window._proposals.length === 0) {
-    document.getElementById('gen-proposals').style.display = 'none';
-  }
-}
-
-function selectAllProposals() {
-  // Non più necessaria con il nuovo flusso — mantenuta per compatibilità
-}
-
-function approveSelected() {
-  // Non più necessaria con il nuovo flusso — mantenuta per compatibilità
-  showToast('Usa il bottone Approva su ogni post', 'success');
-}
-
-// ===== GENERATE POST (mantieni per compatibilità) =====
-async function generatePost() {
-  return generatePosts();
-}
-
-function buildSystemPrompt(kb) {
-  // Recupera post stellati come esempi di stile
-  var starredPosts = posts.filter(function(p) { return p.starred; }).slice(0, 5);
-  var starredExamples = starredPosts.length > 0
-    ? '\n\nESEMPI DI POST CHE FUNZIONANO (stile e tono da seguire):\n' +
-      starredPosts.map(function(p, i) { return '--- Esempio ' + (i+1) + ' ---\n' + p.text; }).join('\n\n')
-    : '';
-
-  return `Sei il social media strategist di House of Music (HOM), il primo gruppo d'avanguardia italiano che aggrega etichette indipendenti senza annullarne l'identità.
-
-IDENTITÀ DEL BRAND:
-House of Music è un ecosistema federato con sede a Milano (Viale Tunisia 39) che include le etichette: Asian Fake, FLUIDOSTUDIO, Peroni Dischi, Stolen Goods, Revolutional, GenUs. Ha anche startup/tech: Midly (data & fan relations), Studio Mob (studi di registrazione), Mare Studio (spazi creativi).
-
-FILOSOFIA:
-- "There is room for everyone" — dare spazio senza omologare
-- L'indipendenza come vantaggio competitivo, non come limite
-- La musica prima dei numeri: nessuna ansia da grafici
-- Metafora della casa: ogni etichetta è una stanza con la propria identità
-- Supporto operativo (distribuzione, legale, marketing, dati) per proteggere l'artista
-
-${kb.desc ? `DESCRIZIONE APPROFONDITA: ${kb.desc}` : ''}
-${kb.values ? `VALORI: ${kb.values}` : ''}
-${kb.audience ? `TARGET LINKEDIN: ${kb.audience}` : ''}
-${kb.af ? `ASIAN FAKE: ${kb.af}` : ''}
-${kb.fluid ? `FLUIDOSTUDIO: ${kb.fluid}` : ''}
-${kb.peroni ? `PERONI DISCHI: ${kb.peroni}` : ''}
-${kb.other ? `ALTRE ETICHETTE: ${kb.other}` : ''}
-${kb.news ? `NEWS RECENTI: ${kb.news}` : ''}
-${kb.milestones ? `MILESTONE: ${kb.milestones}` : ''}
-
-TONO DI VOCE:
-- Professionale ma non freddo, visionario e culturale
-- Diretto, senza fronzoli. Mai autoreferenziale
-- Parla sia agli investitori che agli artisti
-- Italiano, con occasionali termini inglesi del settore
-
-FORMATO:
-- Max 1300 caratteri
-- Prima riga = hook forte che ferma lo scroll
-- Corpo = 3-5 paragrafi brevi
-- Chiusura = domanda o call to action leggera
-- ${kb.hashtags || '3-5 hashtag pertinenti'} alla fine
-- Max 2-3 emoji per post
-
-Rispondi SOLO con il testo del post, niente altro.` + starredExamples;
-}
-
-function buildUserPrompt(topic, tone, label, notes) {
-  let prompt = `Genera un post LinkedIn per House of Music`;
-  if (topic) prompt += ` sul tema: "${topic}"`;
-  if (label) prompt += `. Focus sull'etichetta: ${label}`;
-  if (tone) prompt += `. Tono: ${tone}`;
-  if (notes) prompt += `. Note specifiche: ${notes}`;
-  prompt += `. La data di oggi è ${new Date().toLocaleDateString('it-IT', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}.`;
-  return prompt;
-}
-
-// ===== POST MANAGEMENT =====
-function approveGenerated() {
-  // Compatibilità - ora usa approveSelected
-  approveSelected();
-}
-
-function saveAsDraft() {
-  // Salva prima proposta come bozza se esistono proposte
-  if (window._proposals && window._proposals.length > 0) {
-    var p = window._proposals[0];
-    posts.unshift({ id: Date.now(), text: p.text, status: 'draft', created: new Date().toISOString(), scheduled: null, topic: p.topic || 'Bozza' });
-    savePosts();
-    updateStats();
-    showToast('Bozza salvata', 'success');
-  }
-}
-
-function openReview(id) {
-  var post = posts.find(function(p) { return String(p.id) === String(id); });
-  if (!post) return;
-  currentEditId = post.id;
-  document.getElementById('modal-editor').value = post.text;
-  document.getElementById('modal-preview').textContent = post.text;
-  updateCharCount('modal-editor', 'modal-char');
-  document.getElementById('review-modal').classList.add('open');
-}
-
-function closeModal() {
-  document.getElementById('review-modal').classList.remove('open');
-  currentEditId = null;
-}
-
-function publishPost() {
-  if (!currentEditId) return;
-  const idx = posts.findIndex(p => p.id === currentEditId);
-  if (idx === -1) return;
-  posts[idx].text = document.getElementById('modal-editor').value;
-  posts[idx].status = 'published';
-  posts[idx].publishedAt = new Date().toISOString();
-  savePosts();
-  renderDashboard();
-  renderStorico();
-  updateStats();
-  closeModal();
-  showToast('✓ Post approvato e pubblicato!', 'success');
-}
-
-function deletePost() {
-  if (!currentEditId) return;
-  posts = posts.filter(p => p.id !== currentEditId);
-  savePosts();
-  renderDashboard();
-  renderStorico();
-  updateStats();
-  closeModal();
-  showToast('Post eliminato', 'success');
-}
-
-// ===== RENDER =====
-function renderDashboard() {
+async function distributePlan() {
   var pending = posts.filter(function(p) { return p.status === 'pending' && !p.scheduledDate; });
-  var scheduled = posts.filter(function(p) { return p.status === 'pending' && p.scheduledDate; })
-    .sort(function(a,b) { return a.scheduledDate.localeCompare(b.scheduledDate); });
-  var published = posts.filter(function(p) { return p.status === 'published'; });
+  if (!pending.length) { showToast('Nessun post da distribuire — genera prima i post', 'error'); return; }
 
-  document.getElementById('pending-list').innerHTML = pending.length
-    ? pending.map(function(p) { return renderPostCard(p); }).join('')
-    : '<div style="color: var(--gray); font-size: 13px; padding: 16px 0; font-style: italic;">Nessun post da pianificare — <span style="color: var(--gold); cursor: pointer;" onclick="showView(\'genera\')">genera nuovi post →</span></div>';
+  var apiKey = localStorage.getItem('hom_api_key');
+  if (!apiKey) { showToast('Configura la API Key', 'error'); return; }
 
-  var scheduledEl = document.getElementById('scheduled-list');
-  if (scheduledEl) {
-    scheduledEl.innerHTML = scheduled.length
-      ? scheduled.slice(0, 3).map(function(p) { return renderPostCard(p); }).join('')
-      : '<div style="color: var(--gray); font-size: 13px; padding: 16px 0; font-style: italic;">Nessun post pianificato — <span style="color: var(--gold); cursor: pointer;" onclick="showView(\'calendario\')">vai al Piano Editoriale →</span></div>';
-  }
+  var btn = document.getElementById('distribute-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
 
-  document.getElementById('published-list').innerHTML = published.slice(0, 2).length
-    ? published.slice(0, 2).map(function(p) { return renderPostCard(p); }).join('')
-    : '<div style="color: var(--gray); font-size: 13px; padding: 16px 0; font-style: italic;">Nessun post pubblicato ancora</div>';
+  // Get preferred days
+  var dayMap = { lun: 1, mar: 2, mer: 3, gio: 4, ven: 5, sab: 6, dom: 0 };
+  var preferredDays = [];
+  document.querySelectorAll('[data-day]').forEach(function(cb) {
+    if (cb.checked) preferredDays.push(dayMap[cb.dataset.day]);
+  });
+  if (!preferredDays.length) preferredDays = [1, 2, 3, 4, 5]; // default weekdays
+  var preferredTime = document.getElementById('post-time') ? document.getElementById('post-time').value : '09:00';
 
-  document.getElementById('pending-badge').textContent = pending.length;
-  document.getElementById('pending-badge').style.display = pending.length ? 'inline' : 'none';
+  var prompt = 'Ho ' + pending.length + ' post LinkedIn da distribuire nel calendario.\n' +
+    'Giorni preferiti della settimana (0=dom, 1=lun, ... 6=sab): ' + preferredDays.join(',') + '\n' +
+    'Orario preferito: ' + preferredTime + '\n' +
+    'Data di partenza: ' + new Date().toISOString().slice(0, 10) + ' (domani o dopo)\n\n' +
+    'Post da distribuire:\n' + pending.map(function(p, i) { return (i + 1) + '. [ID:' + p.id + '] ' + (p.topic || '') + ': ' + (p.text || '').substring(0, 80) + '...'; }).join('\n') + '\n\n' +
+    'Rispondi SOLO con un JSON array. Ogni elemento: {"id": numero, "date": "YYYY-MM-DD", "time": "HH:MM"}. Distribuisci i post nei prossimi giorni disponibili, uno per giorno. Nessun altro testo.';
 
-  var lastEl = document.getElementById('last-published-info');
-  if (lastEl && published[0]) {
-    var d = new Date(published[0].publishedAt || published[0].created);
-    var diff = Math.floor((new Date() - d) / 86400000);
-    lastEl.textContent = 'Ultimo: ' + (diff === 0 ? 'oggi' : diff === 1 ? 'ieri' : diff + ' giorni fa');
-  }
-}
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+    });
 
-function renderPostCard(post) {
-  var isScheduled = post.status === 'pending' && post.scheduledDate;
-  var isPending = post.status === 'pending' && !post.scheduledDate;
-  var isPublished = post.status === 'published';
-  var isStarred = post.starred ? true : false;
+    var data = await res.json();
+    var raw = data.content[0].text.trim();
+    var jsonMatch = raw.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('Risposta non valida');
 
-  var dateField = post.scheduledDate || post.publishedAt || post.created;
-  var date = new Date(dateField).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
-  var timeStr = post.scheduledDate ? ' · ' + new Date(post.scheduledDate).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}) : '';
-  var preview = (post.text || '').substring(0, 180) + ((post.text || '').length > 180 ? '...' : '');
-  var statusLabel = isPending ? 'Approvato' : isScheduled ? 'Pianificato' : isPublished ? 'Su LinkedIn' : 'Bozza';
-  var statusClass = isPending ? 'pending' : isScheduled ? 'scheduled' : post.status;
+    var plan = JSON.parse(jsonMatch[0]);
+    plan.forEach(function(item) {
+      var idx = posts.findIndex(function(p) { return String(p.id) === String(item.id); });
+      if (idx !== -1) {
+        posts[idx].scheduledDate = item.date + 'T' + (item.time || preferredTime) + ':00';
+      }
+    });
 
-  var buttons = '<button class="btn btn-outline" onclick="openReview(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">Revisiona</button>';
-  if (isScheduled) {
-    buttons += '<button class="btn btn-success" onclick="quickPublish(' + post.id + ')" style="font-size: 12px; padding: 7px 14px;">✓ Su LinkedIn</button>';
-    buttons += '<button class="btn btn-ghost" onclick="removeFromPlan(' + post.id + ')" style="font-size: 12px; color: var(--gray-light);">Rimuovi dal piano</button>';
-  }
-  buttons += '<button class="btn btn-ghost" onclick="confirmDelete(' + post.id + ')" style="font-size: 12px; color: var(--red);">Elimina</button>';
-
-  return '<div class="post-card ' + statusClass + '">' +
-    '<div class="post-meta">' +
-      '<span class="post-status ' + statusClass + '">' + statusLabel + '</span>' +
-      '<span class="post-date">' + date + timeStr + '</span>' +
-      '<span class="post-topic">' + (post.topic || '') + '</span>' +
-      '<button onclick="toggleStar(' + post.id + ')" style="margin-left:auto; background:none; border:none; cursor:pointer; font-size:18px; padding:2px 6px; color:' + (isStarred ? 'var(--gold)' : 'var(--gray)') + ';">✦</button>' +
-    '</div>' +
-    '<div class="post-text">' + preview + '</div>' +
-    '<div class="post-actions">' + buttons + '</div>' +
-  '</div>';
-}
-
-function toggleStar(id) {
-  var idx = posts.findIndex(function(p) { return String(p.id) === String(id); });
-  if (idx === -1) return;
-  posts[idx].starred = !posts[idx].starred;
-  savePosts();
-  renderDashboard();
-  renderStorico();
-  var msg = posts[idx].starred ? '⭐ Preferito — Claude imparerà da questo post!' : '✦ Rimosso dai preferiti';
-  showToast(msg, 'success');
-}
-
-function quickPublish(id) {
-  var idx = posts.findIndex(function(p) { return String(p.id) === String(id); });
-  if (idx === -1) return;
-  posts[idx].status = 'published';
-  posts[idx].publishedAt = new Date().toISOString();
-  savePosts();
-  renderDashboard();
-  renderStorico();
-  renderCalendar();
-  updateStats();
-  showToast('✓ Post pubblicato!', 'success');
-}
-
-function confirmDelete(id) {
-  if (confirm('Eliminare questo post?')) {
-    posts = posts.filter(function(p) { return String(p.id) !== String(id); });
     savePosts();
-    renderDashboard();
-    renderStorico();
+    renderPianoPending();
     renderCalendar();
-    updateStats();
-    showToast('Post eliminato', 'success');
+    updateBadge();
+    showToast(plan.length + ' post distribuiti nel calendario!', 'success');
+
+  } catch(e) {
+    showToast('Errore distribuzione: ' + e.message, 'error');
   }
-}
 
-function removeFromPlan(id) {
-  var idx = posts.findIndex(function(p) { return String(p.id) === String(id); });
-  if (idx === -1) return;
-  posts[idx].scheduledDate = null;
-  savePosts();
-  renderDashboard();
-  renderCalendar();
-  showToast('Post rimosso dal piano — torna in "Da pianificare"', 'success');
-}
-
-function updateStats() {
-  var now = new Date();
-  var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  var pending = posts.filter(function(p) { return p.status === 'pending' && !p.scheduledDate; });
-  var scheduled = posts.filter(function(p) { return p.status === 'pending' && p.scheduledDate; });
-  var published = posts.filter(function(p) { return p.status === 'published'; });
-  var thisMonth = posts.filter(function(p) { return p.status === 'published' && new Date(p.publishedAt || p.created) >= monthStart; });
-
-  document.getElementById('stat-pending').textContent = pending.length;
-  var schedEl = document.getElementById('stat-scheduled');
-  if (schedEl) schedEl.textContent = scheduled.length;
-  document.getElementById('stat-published').textContent = published.length;
-  document.getElementById('stat-month').textContent = thisMonth.length;
-}
-
-// ===== STORICO =====
-function renderStorico() {
-  var searchEl = document.getElementById('storico-search');
-  var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
-  var filtered = currentFilter === 'all' ? posts : posts.filter(p => p.status === currentFilter);
-  if (query) filtered = filtered.filter(p => (p.text || '').toLowerCase().includes(query) || (p.topic || '').toLowerCase().includes(query));
-  document.getElementById('storico-list').innerHTML = filtered.length
-    ? filtered.map(p => renderPostCard(p)).join('')
-    : '<div style="color: var(--gray); font-size: 13px; padding: 20px 0; font-style: italic;">Nessun post trovato</div>';
-}
-
-function filterPosts(type) {
-  currentFilter = type;
-  ['all', 'published', 'pending', 'draft'].forEach(t => {
-    const btn = document.getElementById('filter-' + t);
-    if (btn) { btn.style.borderColor = ''; btn.style.color = ''; }
-  });
-  const active = document.getElementById('filter-' + type);
-  if (active) { active.style.borderColor = 'var(--gold)'; active.style.color = 'var(--gold)'; }
-  renderStorico();
+  btn.disabled = false;
+  btn.innerHTML = '✦ Distribuisci con AI';
 }
 
 // ===== CALENDAR =====
@@ -1921,9 +943,7 @@ function renderCalendar() {
   var days = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 
   document.getElementById('cal-title').textContent = months[month] + ' ' + year;
-
-  var headersEl = document.getElementById('cal-headers');
-  headersEl.innerHTML = days.map(function(d) { return '<div class="cal-header">' + d + '</div>'; }).join('');
+  document.getElementById('cal-headers').innerHTML = days.map(function(d) { return '<div class="cal-header">' + d + '</div>'; }).join('');
 
   var firstDay = new Date(year, month, 1);
   var startDow = firstDay.getDay() - 1;
@@ -1931,10 +951,9 @@ function renderCalendar() {
   var daysInMonth = new Date(year, month + 1, 0).getDate();
   var daysInPrev = new Date(year, month, 0).getDate();
 
-  // Raccoglie tutti i post con data schedulata o pubblicata nel mese
+  var monthPrefix = year + '-' + String(month + 1).padStart(2, '0');
   var monthPosts = posts.filter(function(p) {
-    var d = p.scheduledDate || p.publishedAt || p.created || '';
-    return d.startsWith(year + '-' + String(month+1).padStart(2,'0'));
+    return p.scheduledDate && p.scheduledDate.startsWith(monthPrefix);
   });
 
   var html = '';
@@ -1943,21 +962,15 @@ function renderCalendar() {
   }
   for (var d = 1; d <= daysInMonth; d++) {
     var isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-    var dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    var dayPosts = monthPosts.filter(function(p) {
-      var pd = (p.scheduledDate || p.publishedAt || p.created || '').substring(0,10);
-      return pd === dateStr;
-    });
-    var pillsHtml = dayPosts.slice(0,2).map(function(p) {
-      var label = (p.topic || p.text || '').substring(0,20);
+    var dateStr = monthPrefix + '-' + String(d).padStart(2, '0');
+    var dayPosts = monthPosts.filter(function(p) { return p.scheduledDate.substring(0, 10) === dateStr; });
+    var pills = dayPosts.slice(0, 2).map(function(p) {
       var cls = p.status === 'published' ? 'published' : '';
-      return '<div class="cal-post-pill ' + cls + '" onclick="event.stopPropagation();showDayPosts(\'' + dateStr + '\')" title="' + (p.topic || p.text || '').substring(0,60) + '">' + label + '</div>';
+      return '<div class="cal-post-pill ' + cls + '" title="' + escapeHtml((p.topic || p.text || '').substring(0, 60)) + '">' + escapeHtml((p.topic || '').substring(0, 18) || (p.text || '').substring(0, 18)) + '</div>';
     }).join('');
-    if (dayPosts.length > 2) pillsHtml += '<div style="font-size:9px;color:var(--gray);text-align:center;">+' + (dayPosts.length-2) + '</div>';
-    html += '<div class="cal-day ' + (isToday ? 'today' : '') + (dayPosts.length ? ' has-post' : '') + '" onclick="showDayPosts(\'' + dateStr + '\')">' +
-      '<span style="font-weight:' + (isToday ? '700' : '400') + '">' + d + '</span>' +
-      pillsHtml +
-      '</div>';
+    if (dayPosts.length > 2) pills += '<div style="font-size:9px; color:var(--gray); text-align:center;">+' + (dayPosts.length - 2) + '</div>';
+    html += '<div class="cal-day' + (isToday ? ' today' : '') + (dayPosts.length ? ' has-post' : '') + '" onclick="showDayPosts(\'' + dateStr + '\')">' +
+      '<span>' + d + '</span>' + pills + '</div>';
   }
   var remaining = 42 - (startDow + daysInMonth);
   for (var i = 1; i <= remaining; i++) {
@@ -1965,211 +978,342 @@ function renderCalendar() {
   }
   document.getElementById('cal-grid').innerHTML = html;
 
-  // Lista post del mese sotto la griglia
-  renderMonthPostsList(monthPosts, months[month] + ' ' + year);
+  // Month list
+  renderMonthList(monthPosts, months[month]);
 }
 
-function renderMonthPostsList(monthPosts, label) {
+function renderMonthList(monthPosts, monthName) {
   var el = document.getElementById('cal-month-posts');
-  if (!el) return;
-  if (!monthPosts.length) {
-    el.innerHTML = '<div style="color:var(--gray);font-size:13px;padding:20px 0;font-style:italic;">Nessun post pianificato questo mese — usa <b style=\'color:var(--gold)\'>Genera Piano AI</b> per distribuire i post approvati.</div>';
-    return;
-  }
-  // Ordina per data
-  var sorted = monthPosts.slice().sort(function(a,b) {
-    var da = a.scheduledDate || a.publishedAt || a.created || '';
-    var db = b.scheduledDate || b.publishedAt || b.created || '';
-    return da.localeCompare(db);
-  });
-  el.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray);margin-bottom:16px;">' + sorted.length + ' post in ' + label + '</div>' +
+  if (!monthPosts.length) { el.innerHTML = ''; return; }
+  var sorted = monthPosts.slice().sort(function(a, b) { return a.scheduledDate.localeCompare(b.scheduledDate); });
+  el.innerHTML = '<div class="section-label">' + sorted.length + ' post in ' + monthName + '</div>' +
     sorted.map(function(p) {
-      var d = new Date(p.scheduledDate || p.publishedAt || p.created);
-      var dateLabel = d.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'short'});
-      var timeLabel = p.scheduledDate ? d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}) : '';
-      var statusColor = p.status === 'published' ? 'var(--green)' : p.status === 'pending' ? 'var(--gold)' : 'var(--gray)';
-      var statusLabel = p.status === 'published' ? 'Pubblicato' : p.status === 'pending' ? 'In attesa' : 'Bozza';
-      return '<div style="display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);">' +
-        '<div style="min-width:90px;font-family:\'DM Mono\',monospace;font-size:11px;color:var(--gold);">' + dateLabel + (timeLabel ? '<br><span style="color:var(--gray)">' + timeLabel + '</span>' : '') + '</div>' +
-        '<div style="flex:1;font-size:13px;color:var(--white);line-height:1.4;">' + (p.text || p.content || '').substring(0,100) + '...</div>' +
-        '<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:' + statusColor + ';white-space:nowrap;">' + statusLabel + '</div>' +
-        '<button onclick="openReview(' + p.id + ')" style="background:none;border:1px solid var(--border);color:var(--gray-light);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:11px;white-space:nowrap;">Apri</button>' +
-        '</div>';
+      var d = new Date(p.scheduledDate);
+      var dateLabel = d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
+      var timeLabel = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      var isPublished = p.status === 'published';
+      return '<div class="post-card">' +
+        '<div class="post-card-header">' +
+          '<span class="post-card-status ' + (isPublished ? 'published' : 'scheduled') + '">' + (isPublished ? 'Pubblicato' : 'Pianificato') + '</span>' +
+          '<span class="post-card-date">' + dateLabel + ' · ' + timeLabel + '</span>' +
+          '<span class="post-card-topic">' + (p.topic || '') + '</span>' +
+        '</div>' +
+        '<div class="post-card-text">' + escapeHtml((p.text || '').substring(0, 180)) + '</div>' +
+        '<div class="post-card-actions">' +
+          (!isPublished ? '<button class="btn btn-success btn-sm" onclick="openPublish(' + p.id + ')">Pubblica su LinkedIn</button>' : '') +
+          '<button class="btn btn-outline btn-sm" onclick="openEdit(' + p.id + ')">Modifica</button>' +
+          (!isPublished ? '<button class="btn btn-ghost btn-sm" onclick="unschedule(' + p.id + ')">Rimuovi dal piano</button>' : '') +
+          '<button class="btn btn-danger btn-sm" onclick="deletePost(' + p.id + ')">Elimina</button>' +
+        '</div>' +
+      '</div>';
     }).join('');
 }
 
 function showDayPosts(dateStr) {
-  var dayPosts = posts.filter(function(p) {
-    var pd = (p.scheduledDate || p.publishedAt || p.created || '').substring(0,10);
-    return pd === dateStr;
-  });
-  var el = document.getElementById('cal-day-posts');
-  if (dayPosts.length) {
-    var d = new Date(dateStr + 'T12:00:00');
-    var label = d.toLocaleDateString('it-IT', { weekday:'long', day:'2-digit', month:'long' });
-    el.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray);margin-bottom:12px;">' + label + '</div>' +
-      dayPosts.map(function(p) { return renderPostCard(p); }).join('');
-  } else {
-    el.innerHTML = '';
-  }
-  // Apri modal per aggiungere
-  openCalModal(dateStr);
-}
-
-var _calModalDate = '';
-
-function openCalModal(dateStr) {
-  _calModalDate = dateStr;
-  var d = new Date(dateStr + 'T12:00:00');
-  var label = d.toLocaleDateString('it-IT', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
-  document.getElementById('cal-add-date-label').textContent = '📅 ' + label;
-
-  // Mostra post già presenti su questa data
-  var existingOnDate = posts.filter(function(p) {
-    return (p.scheduledDate || p.publishedAt || p.created || '').substring(0,10) === dateStr;
-  });
-  var existingEl = document.getElementById('cal-modal-existing');
-  if (existingEl) {
-    if (existingOnDate.length > 0) {
-      existingEl.style.display = 'block';
-      existingEl.innerHTML =
-        '<div style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray);margin-bottom:10px;">Post già in questa data</div>' +
-        existingOnDate.map(function(p) {
-          var statusColor = p.status === 'published' ? 'var(--green)' : 'var(--gold)';
-          var time = p.scheduledDate ? new Date(p.scheduledDate).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}) : '';
-          return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">' +
-            '<div style="flex:1;">' +
-              '<div style="font-size:12px;color:var(--white);line-height:1.4;">' + (p.text||'').substring(0,80) + '...</div>' +
-              '<div style="font-size:11px;font-family:\'DM Mono\',monospace;color:' + statusColor + ';margin-top:4px;">' + (time ? time + ' · ' : '') + (p.status === 'published' ? 'Pubblicato' : 'In attesa') + '</div>' +
-            '</div>' +
-            '<button onclick="openReview(' + p.id + ');closeCalModal();" style="background:none;border:1px solid var(--border);color:var(--gray-light);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:11px;">Apri</button>' +
-          '</div>';
-        }).join('') +
-        '<div style="border-top:1px solid var(--border);margin:12px 0 0;"></div>';
-    } else {
-      existingEl.style.display = 'none';
-      existingEl.innerHTML = '';
-    }
-  }
-
-  // Reset tab
-  switchCalTab('manual');
-  document.getElementById('cal-manual-text').value = '';
-  document.getElementById('cal-manual-char').textContent = '0 / 1300';
-  document.getElementById('cal-ai-result').style.display = 'none';
-  document.getElementById('cal-ai-save-btn').style.display = 'none';
-  document.getElementById('cal-ai-gen-btn').style.display = '';
-  document.getElementById('cal-add-modal').classList.add('open');
-}
-
-function closeCalModal() {
-  document.getElementById('cal-add-modal').classList.remove('open');
-}
-
-function switchCalTab(tab) {
-  ['manual','ai','existing'].forEach(function(t) {
-    document.getElementById('cal-tab-' + t).style.display = t === tab ? 'block' : 'none';
-    var btn = document.getElementById('tab-' + t);
-    if (btn) {
-      btn.style.background = t === tab ? 'var(--gold)' : 'transparent';
-      btn.style.color = t === tab ? 'var(--black)' : 'var(--gray-light)';
-      btn.style.borderColor = t === tab ? 'var(--gold)' : 'var(--border)';
-    }
-  });
-  // Popola lista esistenti se tab existing
-  if (tab === 'existing') {
-    var available = posts.filter(function(p) { return p.status === 'pending' || p.status === 'draft'; });
-    var listEl = document.getElementById('cal-existing-list');
-    if (!available.length) {
-      listEl.innerHTML = '<div style="color:var(--gray);font-size:13px;font-style:italic;">Nessun post in attesa o bozza disponibile</div>';
-    } else {
-      listEl.innerHTML = available.map(function(p) {
-        return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;cursor:pointer;" onclick="pickExistingPost(\'' + p.id + '\')">' +
-          '<div style="flex:1">' +
-            '<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--gold);margin-bottom:3px;">' + (p.status === 'pending' ? 'In attesa' : 'Bozza') + ' · ' + (p.topic || '') + '</div>' +
-            '<div style="font-size:13px;color:var(--white);">' + (p.text || '').substring(0,80) + '...</div>' +
-          '</div>' +
-          '<div style="color:var(--gold);font-size:18px;">→</div>' +
-        '</div>';
-      }).join('');
-    }
-  }
-}
-
-function pickExistingPost(postId) {
-  var time = document.getElementById('cal-existing-time').value || '10:00';
-  var idx = posts.findIndex(function(p) { return String(p.id) === String(postId); });
-  if (idx === -1) return;
-  posts[idx].scheduledDate = _calModalDate + 'T' + time + ':00';
-  savePosts();
-  renderCalendar();
-  closeCalModal();
-  showToast('Post aggiunto al Piano Editoriale!', 'success');
-}
-
-async function generateCalPost() {
-  var apiKey = localStorage.getItem('hom_api_key');
-  if (!apiKey) { showToast('Configura la API Key in Impostazioni', 'error'); return; }
-  var btn = document.getElementById('cal-ai-gen-btn');
-  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
-  btn.disabled = true;
-  var topic = document.getElementById('cal-ai-topic').value;
-  var kb = localStorage.getItem('hom_knowledge') ? JSON.parse(localStorage.getItem('hom_knowledge')) : {};
-  var d = new Date(_calModalDate + 'T12:00:00');
-  var dateLabel = d.toLocaleDateString('it-IT', { weekday:'long', day:'2-digit', month:'long' });
-  var prompt = 'Genera un post LinkedIn per House of Music da pubblicare ' + dateLabel + '.' +
-    (topic ? ' Tema: ' + topic + '.' : '') +
-    ' Tono: visionario e culturale. Max 1300 caratteri. Solo il testo del post, nient\'altro.';
-  try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, system: buildSystemPrompt(kb), messages: [{ role: 'user', content: prompt }] })
-    });
-    var data = await res.json();
-    var text = data.content[0].text.trim();
-    document.getElementById('cal-ai-text').value = text;
-    document.getElementById('cal-ai-char').textContent = text.length + ' / 1300';
-    document.getElementById('cal-ai-result').style.display = 'block';
-    document.getElementById('cal-ai-save-btn').style.display = '';
-    showToast('Post generato!', 'success');
-  } catch(e) {
-    showToast('Errore generazione', 'error');
-  }
-  btn.innerHTML = '✦ Rigenera';
-  btn.disabled = false;
-}
-
-function saveCalPost(type) {
-  var text = '';
-  var time = '10:00';
-  if (type === 'manual') {
-    text = document.getElementById('cal-manual-text').value.trim();
-    time = document.getElementById('cal-manual-time').value || '10:00';
-  } else if (type === 'ai') {
-    text = document.getElementById('cal-ai-text').value.trim();
-    time = document.getElementById('cal-ai-time').value || '10:00';
-  }
-  if (!text) { showToast('Inserisci il testo del post', 'error'); return; }
-  var newPost = {
-    id: Date.now(),
-    text: text,
-    status: 'pending',
-    created: new Date().toISOString(),
-    scheduledDate: _calModalDate + 'T' + time + ':00',
-    topic: type === 'ai' ? (document.getElementById('cal-ai-topic').value || 'AI') : 'Manuale'
-  };
-  posts.unshift(newPost);
-  savePosts();
-  renderCalendar();
-  updateStats();
-  closeCalModal();
-  showToast('Post aggiunto al Piano Editoriale!', 'success');
+  // Scroll to month list - posts for that day are visible there
+  var el = document.getElementById('cal-month-posts');
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
 }
 
 function changeMonth(dir) {
   calendarDate.setMonth(calendarDate.getMonth() + dir);
   renderCalendar();
+}
+
+function unschedule(id) {
+  var idx = posts.findIndex(function(p) { return p.id === id; });
+  if (idx === -1) return;
+  posts[idx].scheduledDate = null;
+  savePosts();
+  renderPianoPending();
+  renderCalendar();
+  updateBadge();
+  showToast('Post rimosso dal piano', 'success');
+}
+
+// ===== PUBLISH FLOW =====
+function openPublish(id) {
+  _publishId = id;
+  var post = posts.find(function(p) { return p.id === id; });
+  if (!post) return;
+  var isAlreadyPublished = post.status === 'published';
+
+  // Show preview
+  var previewEl = document.getElementById('pub-preview');
+  previewEl.innerHTML = '<div class="linkedin-preview" style="margin-bottom:0;">' +
+    '<div class="li-header"><div class="li-avatar">H</div><div><div class="li-name">House of Music</div><div class="li-sub">Independent Music Ecosystem · Milano</div></div></div>' +
+    '<div class="li-body">' + escapeHtml(post.text || '') + '</div></div>';
+
+  // Title
+  var title = document.getElementById('pub-modal-title');
+  title.textContent = isAlreadyPublished ? 'Aggiorna metriche' : 'Pubblica su LinkedIn';
+
+  // Show N8N or manual mode
+  var n8nMode = document.getElementById('pub-mode-n8n');
+  var manualMode = document.getElementById('pub-mode-manual');
+  if (isN8nConfigured() && !isAlreadyPublished) {
+    n8nMode.style.display = 'block';
+    manualMode.style.display = 'none';
+  } else {
+    n8nMode.style.display = 'none';
+    manualMode.style.display = 'block';
+  }
+
+  // Reset manual fields
+  document.getElementById('pub-url').value = post.linkedinUrl || '';
+  document.getElementById('pub-impressions').value = (post.metrics && post.metrics.impressions) || '';
+  document.getElementById('pub-reactions').value = (post.metrics && post.metrics.reactions) || '';
+  document.getElementById('pub-comments').value = (post.metrics && post.metrics.comments) || '';
+  document.getElementById('pub-shares').value = (post.metrics && post.metrics.shares) || '';
+
+  document.getElementById('publish-modal').classList.add('open');
+}
+
+function closePublishModal() {
+  document.getElementById('publish-modal').classList.remove('open');
+  _publishId = null;
+}
+
+function confirmPublish() {
+  if (!_publishId) return;
+  var idx = posts.findIndex(function(p) { return p.id === _publishId; });
+  if (idx === -1) return;
+
+  posts[idx].status = 'published';
+  posts[idx].publishedAt = new Date().toISOString();
+  posts[idx].linkedinUrl = document.getElementById('pub-url').value.trim() || null;
+  posts[idx].metrics = {
+    impressions: parseInt(document.getElementById('pub-impressions').value) || 0,
+    reactions: parseInt(document.getElementById('pub-reactions').value) || 0,
+    comments: parseInt(document.getElementById('pub-comments').value) || 0,
+    shares: parseInt(document.getElementById('pub-shares').value) || 0
+  };
+
+  savePosts();
+  closePublishModal();
+  renderCalendar();
+  renderStorico();
+  renderAnalytics();
+  updateBadge();
+  showToast('Post pubblicato!', 'success');
+}
+
+// ===== EDIT MODAL =====
+function openEdit(id) {
+  var post = posts.find(function(p) { return p.id === id; });
+  if (!post) return;
+  _editId = id;
+  document.getElementById('edit-text').value = post.text;
+  document.getElementById('edit-preview').textContent = post.text;
+  updateCharCount('edit-text', 'edit-char');
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  _editId = null;
+}
+
+function updateEditPreview() {
+  var text = document.getElementById('edit-text').value;
+  document.getElementById('edit-preview').textContent = text;
+  updateCharCount('edit-text', 'edit-char');
+}
+
+function saveEdit() {
+  if (!_editId) return;
+  var idx = posts.findIndex(function(p) { return p.id === _editId; });
+  if (idx === -1) return;
+  posts[idx].text = document.getElementById('edit-text').value;
+  savePosts();
+  closeEditModal();
+  renderPianoPending();
+  renderCalendar();
+  renderStorico();
+  showToast('Post aggiornato', 'success');
+}
+
+// ===== POST MANAGEMENT =====
+function deletePost(id) {
+  if (!confirm('Eliminare questo post?')) return;
+  posts = posts.filter(function(p) { return p.id !== id; });
+  savePosts();
+  renderPianoPending();
+  renderCalendar();
+  renderStorico();
+  renderAnalytics();
+  updateBadge();
+  showToast('Post eliminato', 'success');
+}
+
+function resetAllPosts() {
+  if (!confirm('Sei sicuro? Verranno cancellati TUTTI i post (approvati, pianificati, pubblicati). La Knowledge Base resta intatta.')) return;
+  if (!confirm('Ultima conferma — questa azione non è reversibile.')) return;
+  posts = [];
+  savePosts();
+  renderPianoPending();
+  renderCalendar();
+  renderStorico();
+  renderAnalytics();
+  updateBadge();
+  showToast('Tutti i post sono stati cancellati', 'success');
+}
+
+// ===== STORICO =====
+function renderStorico() {
+  var query = (document.getElementById('storico-search') ? document.getElementById('storico-search').value : '').toLowerCase().trim();
+  var filtered = posts;
+
+  if (currentFilter === 'pending') {
+    filtered = filtered.filter(function(p) { return p.status === 'pending' && !p.scheduledDate; });
+  } else if (currentFilter === 'scheduled') {
+    filtered = filtered.filter(function(p) { return p.status === 'pending' && p.scheduledDate; });
+  } else if (currentFilter === 'published') {
+    filtered = filtered.filter(function(p) { return p.status === 'published'; });
+  }
+
+  if (query) filtered = filtered.filter(function(p) { return (p.text || '').toLowerCase().includes(query) || (p.topic || '').toLowerCase().includes(query); });
+
+  var el = document.getElementById('storico-list');
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty-state"><span class="icon">📋</span><div class="title">Nessun post</div><div class="desc">Genera i tuoi primi post con AI per iniziare.</div></div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(function(p) {
+    var isScheduled = p.status === 'pending' && p.scheduledDate;
+    var isPending = p.status === 'pending' && !p.scheduledDate;
+    var isPublished = p.status === 'published';
+    var statusLabel = isPending ? 'In attesa' : isScheduled ? 'Pianificato' : 'Pubblicato';
+    var statusClass = isPending ? 'pending' : isScheduled ? 'scheduled' : 'published';
+    var dateStr = p.publishedAt || p.scheduledDate || p.created;
+    var date = new Date(dateStr).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    var metricsHtml = '';
+    if (isPublished && p.metrics) {
+      var m = p.metrics;
+      var total = (m.impressions || 0) + (m.reactions || 0) + (m.comments || 0) + (m.shares || 0);
+      if (total > 0) {
+        metricsHtml = '<div style="display:flex; gap:16px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">' +
+          (m.impressions ? '<span style="font-family:\'DM Mono\',monospace; font-size:11px; color:var(--gray-light);">👁 ' + m.impressions + '</span>' : '') +
+          (m.reactions ? '<span style="font-family:\'DM Mono\',monospace; font-size:11px; color:var(--gray-light);">👍 ' + m.reactions + '</span>' : '') +
+          (m.comments ? '<span style="font-family:\'DM Mono\',monospace; font-size:11px; color:var(--gray-light);">💬 ' + m.comments + '</span>' : '') +
+          (m.shares ? '<span style="font-family:\'DM Mono\',monospace; font-size:11px; color:var(--gray-light);">↗ ' + m.shares + '</span>' : '') +
+          '</div>';
+      }
+    }
+
+    return '<div class="post-card">' +
+      '<div class="post-card-header">' +
+        '<span class="post-card-status ' + statusClass + '">' + statusLabel + '</span>' +
+        '<span class="post-card-date">' + date + '</span>' +
+        '<span class="post-card-topic">' + (p.topic || '') + '</span>' +
+      '</div>' +
+      '<div class="post-card-text">' + escapeHtml((p.text || '').substring(0, 200)) + '</div>' +
+      metricsHtml +
+      '<div class="post-card-actions">' +
+        (isPublished ? '<button class="btn btn-outline btn-sm" onclick="openPublish(' + p.id + ')">Aggiorna metriche</button>' : '') +
+        (!isPublished ? '<button class="btn btn-success btn-sm" onclick="openPublish(' + p.id + ')">Pubblica</button>' : '') +
+        '<button class="btn btn-outline btn-sm" onclick="openEdit(' + p.id + ')">Modifica</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="deletePost(' + p.id + ')">Elimina</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function filterPosts(type) {
+  currentFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(function(b) {
+    b.classList.remove('active');
+    b.style.borderColor = '';
+    b.style.color = '';
+  });
+  var active = document.querySelector('.filter-btn[data-filter="' + type + '"]');
+  if (active) { active.style.borderColor = 'var(--gold)'; active.style.color = 'var(--gold)'; active.classList.add('active'); }
+  renderStorico();
+}
+
+// ===== ANALYTICS =====
+function renderAnalytics() {
+  var published = posts.filter(function(p) { return p.status === 'published' && p.metrics; });
+  var withMetrics = published.filter(function(p) { return p.metrics && (p.metrics.impressions || p.metrics.reactions || p.metrics.comments || p.metrics.shares); });
+
+  // Stats row
+  var totalImpressions = 0, totalReactions = 0, totalComments = 0, totalShares = 0;
+  withMetrics.forEach(function(p) {
+    totalImpressions += p.metrics.impressions || 0;
+    totalReactions += p.metrics.reactions || 0;
+    totalComments += p.metrics.comments || 0;
+    totalShares += p.metrics.shares || 0;
+  });
+
+  var avgEngagement = withMetrics.length > 0 ? Math.round((totalReactions + totalComments + totalShares) / withMetrics.length) : 0;
+  var engagementRate = totalImpressions > 0 ? ((totalReactions + totalComments + totalShares) / totalImpressions * 100).toFixed(1) : '0.0';
+
+  document.getElementById('analytics-stats').innerHTML =
+    '<div class="stat-card"><div class="stat-label">Post pubblicati</div><div class="stat-value gold">' + published.length + '</div><div class="stat-detail">' + withMetrics.length + ' con metriche</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Impressioni totali</div><div class="stat-value">' + totalImpressions.toLocaleString('it-IT') + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Engagement medio</div><div class="stat-value">' + avgEngagement + '</div><div class="stat-detail">reazioni + commenti + condivisioni</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Tasso engagement</div><div class="stat-value green">' + engagementRate + '%</div></div>';
+
+  // Topics analysis
+  var topicMap = {};
+  withMetrics.forEach(function(p) {
+    var t = p.topic || 'Altro';
+    if (!topicMap[t]) topicMap[t] = { count: 0, engagement: 0 };
+    topicMap[t].count++;
+    topicMap[t].engagement += (p.metrics.reactions || 0) + (p.metrics.comments || 0) + (p.metrics.shares || 0);
+  });
+
+  var topicArr = Object.keys(topicMap).map(function(k) { return { name: k, avg: Math.round(topicMap[k].engagement / topicMap[k].count), count: topicMap[k].count }; });
+  topicArr.sort(function(a, b) { return b.avg - a.avg; });
+  var maxTopicEng = topicArr.length > 0 ? topicArr[0].avg : 1;
+
+  document.getElementById('analytics-topics').innerHTML = topicArr.length > 0 ? topicArr.map(function(t) {
+    return '<div class="kpi-bar-wrap">' +
+      '<div class="kpi-bar-label">' + t.name + '</div>' +
+      '<div class="kpi-bar-track"><div class="kpi-bar-fill" style="width:' + (t.avg / maxTopicEng * 100) + '%; background:var(--gold);"></div></div>' +
+      '<div class="kpi-bar-value">' + t.avg + ' avg</div>' +
+    '</div>';
+  }).join('') : '<div style="color:var(--gray); font-size:13px; font-style:italic;">Pubblica post con metriche per vedere i dati</div>';
+
+  // Tones analysis
+  var toneMap = {};
+  withMetrics.forEach(function(p) {
+    var t = p.tone || 'Non specificato';
+    if (!toneMap[t]) toneMap[t] = { count: 0, engagement: 0 };
+    toneMap[t].count++;
+    toneMap[t].engagement += (p.metrics.reactions || 0) + (p.metrics.comments || 0) + (p.metrics.shares || 0);
+  });
+
+  var toneArr = Object.keys(toneMap).map(function(k) { return { name: k, avg: Math.round(toneMap[k].engagement / toneMap[k].count), count: toneMap[k].count }; });
+  toneArr.sort(function(a, b) { return b.avg - a.avg; });
+  var maxToneEng = toneArr.length > 0 ? toneArr[0].avg : 1;
+
+  document.getElementById('analytics-tones').innerHTML = toneArr.length > 0 ? toneArr.map(function(t) {
+    return '<div class="kpi-bar-wrap">' +
+      '<div class="kpi-bar-label">' + t.name + '</div>' +
+      '<div class="kpi-bar-track"><div class="kpi-bar-fill" style="width:' + (t.avg / maxToneEng * 100) + '%; background:var(--green);"></div></div>' +
+      '<div class="kpi-bar-value">' + t.avg + ' avg</div>' +
+    '</div>';
+  }).join('') : '<div style="color:var(--gray); font-size:13px; font-style:italic;">Pubblica post con metriche per vedere i dati</div>';
+
+  // Top posts
+  var topPosts = withMetrics.slice().sort(function(a, b) {
+    var ea = (a.metrics.reactions || 0) + (a.metrics.comments || 0) + (a.metrics.shares || 0);
+    var eb = (b.metrics.reactions || 0) + (b.metrics.comments || 0) + (b.metrics.shares || 0);
+    return eb - ea;
+  }).slice(0, 5);
+
+  document.getElementById('analytics-top-posts').innerHTML = topPosts.length > 0 ? topPosts.map(function(p, i) {
+    var eng = (p.metrics.reactions || 0) + (p.metrics.comments || 0) + (p.metrics.shares || 0);
+    return '<div style="display:flex; align-items:center; gap:16px; padding:12px 0;' + (i < topPosts.length - 1 ? ' border-bottom:1px solid var(--border);' : '') + '">' +
+      '<div style="font-family:\'Syne\',sans-serif; font-weight:700; font-size:20px; color:var(--gold); min-width:30px;">#' + (i + 1) + '</div>' +
+      '<div style="flex:1;"><div style="font-size:13px; line-height:1.4;">' + escapeHtml((p.text || '').substring(0, 120)) + '...</div>' +
+        '<div style="font-family:\'DM Mono\',monospace; font-size:10px; color:var(--gray); margin-top:4px;">' + (p.topic || '') + '</div></div>' +
+      '<div style="text-align:right; min-width:80px;"><div style="font-family:\'Syne\',sans-serif; font-weight:700; font-size:18px;">' + eng + '</div><div style="font-size:10px; color:var(--gray);">engagement</div></div>' +
+    '</div>';
+  }).join('') : '<div style="color:var(--gray); font-size:13px; font-style:italic; padding:20px 0;">Nessun dato ancora. Pubblica i post e aggiungi le metriche per vedere i KPI.</div>';
 }
 
 // ===== KNOWLEDGE BASE =====
@@ -2184,62 +1328,22 @@ function saveKnowledge() {
     other: document.getElementById('kb-other').value,
     news: document.getElementById('kb-news').value,
     milestones: document.getElementById('kb-milestones').value,
-    hashtags: document.getElementById('kb-hashtags').value,
+    hashtags: document.getElementById('kb-hashtags').value
   };
   localStorage.setItem('hom_knowledge', JSON.stringify(knowledge));
-  saveToFirebase('knowledge', knowledge);
-  // Svuota tutti i campi dopo il salvataggio
-  var fields = ['desc','values','audience','af','fluid','peroni','other','news','milestones','hashtags'];
-  fields.forEach(function(f) {
-    var el = document.getElementById('kb-' + f);
-    if (el) el.value = '';
-  });
-  showToast('✓ Knowledge Base salvata! Usa Esporta per scaricarla.', 'success');
+  showToast('Knowledge Base salvata!', 'success');
 }
 
 function exportKnowledge() {
   var kb = localStorage.getItem('hom_knowledge');
-  if (!kb) { showToast('Nessuna Knowledge Base salvata', 'error'); return; }
+  if (!kb) { showToast('Nessuna KB salvata', 'error'); return; }
   var blob = new Blob([JSON.stringify(JSON.parse(kb), null, 2)], { type: 'application/json' });
-  var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
-  a.href = url;
-  a.download = 'hom-knowledge-base-' + new Date().toISOString().slice(0,10) + '.json';
+  a.href = URL.createObjectURL(blob);
+  a.download = 'hom-knowledge-base-' + new Date().toISOString().slice(0, 10) + '.json';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('Knowledge Base esportata!', 'success');
-}
-
-function toggleKbSaved() {
-  var btn = document.getElementById('kb-saved-toggle');
-  var display = document.getElementById('kb-saved-display');
-  if (content.style.display === 'none') {
-    var kb = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
-    var labels = { desc: 'Descrizione', values: 'Valori', audience: 'Target', af: 'Asian Fake', fluid: 'FLUIDOSTUDIO', peroni: 'Peroni Dischi', other: 'Altre etichette', news: 'News', milestones: 'Milestone', hashtags: 'Hashtag' };
-    var text = Object.keys(labels).filter(function(k) { return kb[k]; }).map(function(k) { return '▸ ' + labels[k] + ':\n' + kb[k]; }).join('\n\n');
-    display.textContent = text || 'Nessun dato salvato';
-    content.style.display = 'block';
-    btn.textContent = 'Nascondi ↑';
-  } else {
-    content.style.display = 'none';
-    btn.textContent = 'Mostra →';
-  }
-}
-
-function exportKnowledge() {
-  var kb = localStorage.getItem('hom_knowledge');
-  if (!kb) { showToast('Nessuna Knowledge Base salvata', 'error'); return; }
-  var blob = new Blob([JSON.stringify(JSON.parse(kb), null, 2)], { type: 'application/json' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'hom-knowledge-base-' + new Date().toISOString().slice(0,10) + '.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
   showToast('Knowledge Base esportata!', 'success');
 }
 
@@ -2249,568 +1353,59 @@ function loadKnowledge() {
     values: "Indipendenza come vantaggio competitivo. Song-driven model. Specializzazione, non competizione di scala. Costruire comunità reali attorno a sistemi di valori chiari.",
     audience: "Investitori del settore musicale, artisti indie, addetti ai lavori, manager, professionisti dell'industria creativa, appassionati di cultura musicale italiana."
   };
-  const saved = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
-  const kb = Object.assign({}, defaultKb, saved);
-  knowledge = kb;
+  var saved = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
+  knowledge = Object.assign({}, defaultKb, saved);
   if (!localStorage.getItem('hom_knowledge')) {
-    localStorage.setItem('hom_knowledge', JSON.stringify(kb));
+    localStorage.setItem('hom_knowledge', JSON.stringify(knowledge));
   }
-  const fields = ['desc','values','audience','af','fluid','peroni','other','news','milestones','hashtags'];
+  var fields = ['desc', 'values', 'audience', 'af', 'fluid', 'peroni', 'other', 'news', 'milestones', 'hashtags'];
   fields.forEach(function(f) {
-    const el = document.getElementById('kb-' + f);
-    if (el && kb[f]) el.value = kb[f];
+    var el = document.getElementById('kb-' + f);
+    if (el && knowledge[f]) el.value = knowledge[f];
   });
 }
 
-// ===== PREVIEW & CHAR COUNT =====
-function updatePreview() {
-  // Non usata nel nuovo flusso — mantenuta per compatibilità modal
-}
-
-function updateModalPreview() {
-  var el = document.getElementById('modal-editor');
-  var prev = document.getElementById('modal-preview');
-  var cnt = document.getElementById('modal-char');
-  if (!el || !prev) return;
-  prev.textContent = el.value;
-  if (cnt) { cnt.textContent = el.value.length + ' / 1300'; cnt.classList.toggle('over', el.value.length > 1300); }
-}
-
-function updateCharCount(editorId, countId) {
-  var el = document.getElementById(editorId);
-  var cnt = document.getElementById(countId);
-  if (!el || !cnt) return;
-  cnt.textContent = el.value.length + ' / 1300';
-  cnt.classList.toggle('over', el.value.length > 1300);
-}
-
-// ===== STORAGE =====
-function savePosts() {
-  localStorage.setItem('hom_posts', JSON.stringify(posts));
-  saveToFirebase('posts', posts);
-}
-
-// ===== TOAST =====
-function showToast(msg, type = 'success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// ===== CLOSE MODALS ON OUTSIDE CLICK =====
-document.getElementById('review-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
-document.getElementById('cal-add-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeCalModal();
-});
-
-// Contatore caratteri modal calendario
-document.getElementById('cal-manual-text').addEventListener('input', function() {
-  var len = this.value.length;
-  var el = document.getElementById('cal-manual-char');
-  el.textContent = len + ' / 1300';
-  el.classList.toggle('over', len > 1300);
-});
-
-// ===== UPDATE APP (legacy - sostituita dalla chat integrata) =====
-async function updateApp() {
-  showToast('Usa la sezione Aggiorna App per modificare', 'success');
-  showView('aggiorna');
-}
-
-
-// ===== CALENDAR AI PLAN =====
-async function generateCalendarPlan() {
-  var btn = document.getElementById('gen-plan-btn');
-  var section = document.getElementById('ai-plan-section');
-  var list = document.getElementById('ai-plan-list');
-  var status = document.getElementById('ai-plan-status');
+// ===== PROFILE =====
+async function generateProfile() {
   var apiKey = localStorage.getItem('hom_api_key');
-
-  if (!apiKey) {
-    showToast('Configura prima la API Key nelle Impostazioni', 'error');
-    return;
-  }
-
-  // Prende i post pending SENZA data schedulata
-  var pendingPosts = posts.filter(function(p) {
-    return p.status === 'pending' && !p.scheduledDate;
-  });
-
-  if (pendingPosts.length === 0) {
-    showToast('Nessun post in attesa da pianificare — approva prima dei post', 'error');
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Generando piano...';
-  section.style.display = 'block';
-  list.innerHTML = '';
-  status.textContent = 'Claude sta pianificando ' + pendingPosts.length + ' post nel calendario...';
-
-  var kb = localStorage.getItem('hom_knowledge') ? JSON.parse(localStorage.getItem('hom_knowledge')) : {};
-  var now = new Date();
-  var mese = now.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
-  var year = now.getFullYear();
-  var month = String(now.getMonth()+1).padStart(2,'0');
-
-  var postsDesc = pendingPosts.map(function(p, i) {
-    return (i+1) + '. ' + (p.topic || p.text.substring(0,50));
-  }).join('\n');
-
-  var prompt = 'Sei il social media manager di House of Music (HOM).\n\n' +
-    'Ho questi ' + pendingPosts.length + ' post da pubblicare su LinkedIn:\n' + postsDesc + '\n\n' +
-    'Distribuiscili in modo ottimale in ' + mese + '.\n' +
-    'Regole:\n' +
-    '- Usa giorni feriali (lun-ven)\n' +
-    '- Orari tra 9:00 e 18:00 (meglio 10:00, 12:00, 16:00)\n' +
-    '- Almeno 2 giorni di distanza tra un post e laltro\n' +
-    '- Parti dalla data di oggi o successiva\n\n' +
-    'Rispondi SOLO con JSON in questo formato (un oggetto per ogni post, stesso ordine):\n' +
-    '[{"index":0,"data":"' + year + '-' + month + '-05","ora":"10:00"},{"index":1,"data":"' + year + '-' + month + '-07","ora":"12:00"}]';
-
-  try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 500,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    var data = await res.json();
-    var text = data.content[0].text.trim();
-    if (text.startsWith('```')) text = text.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '').trim();
-    var plan = JSON.parse(text);
-
-    list.innerHTML = '';
-    plan.forEach(function(item) {
-      var post = pendingPosts[item.index];
-      if (!post) return;
-      var div = document.createElement('div');
-      div.style.cssText = 'padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
-      div.innerHTML =
-        '<div style="flex:1">' +
-          '<div style="font-family:DM Mono,monospace;font-size:11px;color:var(--gold);margin-bottom:4px;">📅 ' + item.data + ' alle ' + item.ora + '</div>' +
-          '<div style="font-size:13px;font-weight:600;">' + (post.topic || post.text.substring(0,60)) + '</div>' +
-          '<div style="font-size:12px;color:var(--gray-light);margin-top:2px;">' + post.text.substring(0,80) + '...</div>' +
-        '</div>' +
-        '<button onclick="schedulePost(\'' + post.id + '\',\'' + item.data + '\',\'' + item.ora + '\')" style="background:var(--gold);color:var(--black);border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:Syne,sans-serif;font-weight:600;font-size:12px;white-space:nowrap;">✓ Conferma</button>';
-      list.appendChild(div);
-    });
-
-    status.textContent = plan.length + ' post pianificati. Conferma le date o modificale.';
-    showToast('Piano Editoriale generato!', 'success');
-
-  } catch(e) {
-    status.textContent = 'Errore: ' + e.message;
-    showToast('Errore generazione piano', 'error');
-  }
-
-  btn.disabled = false;
-  btn.innerHTML = '✦ Genera Piano AI';
-}
-
-function schedulePost(postId, data, ora) {
-  var idx = posts.findIndex(function(p) { return String(p.id) === String(postId); });
-  if (idx === -1) return;
-  posts[idx].scheduledDate = data + 'T' + ora + ':00';
-  savePosts();
-  renderCalendar();
-  showToast('Post pianificato per ' + data + ' alle ' + ora + '!', 'success');
-  // Rimuovi la riga dal piano
-  var allItems = document.querySelectorAll('#ai-plan-list > div');
-  allItems.forEach(function(item) {
-    if (item.innerHTML.includes(postId)) item.remove();
-  });
-  var remaining = document.querySelectorAll('#ai-plan-list > div').length;
-  if (remaining === 0) {
-    document.getElementById('ai-plan-section').style.display = 'none';
-    showToast('Tutti i post pianificati! 🎉', 'success');
-  }
-}
-
-// ===== GITHUB TOKEN =====
-function saveGithubToken() {
-  var token = document.getElementById('github-token-input').value.trim();
-  if (token) {
-    localStorage.setItem('github_token', token);
-    var status = document.getElementById('github-token-status');
-    if (status) status.textContent = '✓ Token salvato';
-    showToast('GitHub Token salvato', 'success');
-  }
-}
-
-// ===== UPDATE CHAT =====
-var updateChatHistory = [];
-
-function initUpdateView() {
-  // Stato API
-  var key = localStorage.getItem('hom_api_key');
-  var dot = document.getElementById('update-api-dot');
-  var txt = document.getElementById('update-api-status');
-  if (key && key.startsWith('sk-ant')) {
-    if (dot) { dot.classList.add('ok'); }
-    if (txt) txt.textContent = 'Configurata ✓';
-  } else {
-    if (dot) dot.classList.remove('ok');
-    if (txt) txt.textContent = 'Non configurata — vai in Impostazioni';
-  }
-  // Token GitHub
-  var ghToken = localStorage.getItem('github_token');
-  var ghInput = document.getElementById('github-token-input');
-  var ghStatus = document.getElementById('github-token-status');
-  if (ghToken && ghInput) {
-    ghInput.value = ghToken;
-    if (ghStatus) ghStatus.textContent = '✓ Token salvato';
-  }
-}
-
-function appendUpdateMessage(role, html) {
-  var container = document.getElementById('update-chat-messages');
-  if (!container) return;
-  var isFirst = container.querySelector('.update-welcome');
-  if (isFirst) isFirst.remove();
-
-  var wrap = document.createElement('div');
-  wrap.style.cssText = 'display: flex; gap: 10px; align-items: flex-start; ' + (role === 'user' ? 'flex-direction: row-reverse;' : '');
-
-  var avatar = document.createElement('div');
-  avatar.style.cssText = 'width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; ' +
-    (role === 'user' ? 'background: var(--gold); color: var(--black); font-weight: 700;' : 'background: rgba(200,169,110,0.15); color: var(--gold); border: 1px solid var(--border);');
-  avatar.textContent = role === 'user' ? 'T' : '⚡';
-
-  var bubble = document.createElement('div');
-  bubble.style.cssText = 'max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.6; ' +
-    (role === 'user'
-      ? 'background: rgba(200,169,110,0.12); border: 1px solid rgba(200,169,110,0.2); color: var(--white); border-top-right-radius: 4px;'
-      : 'background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--white); border-top-left-radius: 4px;');
-  bubble.innerHTML = html;
-
-  wrap.appendChild(avatar);
-  wrap.appendChild(bubble);
-  container.appendChild(wrap);
-  container.scrollTop = container.scrollHeight;
-  return bubble;
-}
-
-async function sendUpdateMessage() {
-  var input = document.getElementById('update-chat-input');
-  var btn = document.getElementById('update-send-btn');
-  var msg = input.value.trim();
-  if (!msg) return;
-
-  var apiKey = localStorage.getItem('hom_api_key');
-  var ghToken = localStorage.getItem('github_token');
-
-  if (!apiKey) {
-    showToast('Configura la API Key in Impostazioni', 'error');
-    showView('impostazioni');
-    return;
-  }
-  if (!ghToken) {
-    showToast('Inserisci prima il GitHub Token', 'error');
-    return;
-  }
-
-  input.value = '';
-  input.style.height = '48px';
+  if (!apiKey) { showToast('Configura prima la API Key', 'error'); showView('impostazioni'); return; }
+  var btn = document.getElementById('gen-profile-btn');
   btn.disabled = true;
   btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
-
-  appendUpdateMessage('user', msg);
-  updateChatHistory.push({ role: 'user', content: msg });
-
-  // Bubble risposta con loading
-  var replyBubble = appendUpdateMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>');
-
-  try {
-    // 1. Scarica il codice attuale da GitHub
-    var fileRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
-      headers: { 'Authorization': 'token ' + ghToken, 'Accept': 'application/vnd.github.v3+json' }
-    });
-    if (!fileRes.ok) throw new Error('Errore lettura file GitHub — controlla il token');
-    var fileData = await fileRes.json();
-    var currentCode = atob(fileData.content.replace(/\n/g, ''));
-    var sha = fileData.sha;
-
-    // 2. Chiama Claude con il codice
-    var systemMsg = 'Sei un developer esperto di HTML/CSS/JavaScript. Ti viene fornito il codice sorgente completo di una web app.\n' +
-      'Il tuo compito è applicare le modifiche richieste e restituire il CODICE HTML COMPLETO AGGIORNATO.\n\n' +
-      'REGOLE ASSOLUTE — VIOLARNE UNA ROMPE L\'APP:\n' +
-      '1. Restituisci SOLO il codice HTML completo, senza spiegazioni, senza markdown, senza backtick\n' +
-      '2. Inizia SEMPRE con <!DOCTYPE html> e termina con </html>\n' +
-      '3. MAI usare newline letterali dentro stringhe JavaScript con apici singoli o doppi\n' +
-      '   SBAGLIATO: var x = \'riga1\n' +
-      '   riga2\';\n' +
-      '   CORRETTO:  var x = \'riga1\\nriga2\';\n' +
-      '4. Mantieni SEMPRE il blocco window.* exports alla fine dello script (window.showView, window.generatePost, ecc.)\n' +
-      '5. NON usare type="module" nei tag script\n' +
-      '6. NON usare import/export ES6\n' +
-      '7. Modifica SOLO le parti richieste — non toccare il resto del codice\n' +
-      '8. Mantieni SEMPRE il commento REGOLA FONDAMENTALE PER CLAUDE nello script\n\n' +
-      'CODICE ATTUALE:\n' + currentCode;
-
-    var messages = updateChatHistory.slice();
-
-    var claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 16000,
-        system: systemMsg,
-        messages: messages
-      })
-    });
-
-    if (!claudeRes.ok) {
-      var err = await claudeRes.json();
-      throw new Error('Errore Claude: ' + (err.error && err.error.message ? err.error.message : claudeRes.status));
-    }
-
-    var claudeData = await claudeRes.json();
-    var newCode = claudeData.content[0].text.trim();
-
-    // Pulizia sicura nel caso Claude aggiunga backtick
-    if (newCode.startsWith('```')) {
-      newCode = newCode.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '').trim();
-    }
-
-    if (!newCode.includes('<!DOCTYPE html>')) {
-      throw new Error('Claude non ha restituito HTML valido — riprova con istruzioni più precise');
-    }
-
-    // === VALIDAZIONE PRE-PUSH ===
-    // 1. Verifica newline letterali nelle stringhe JS
-    var jsStart = newCode.indexOf('<script>');
-    if (jsStart > 0) {
-      var jsCode = newCode.substring(jsStart);
-      var jsLines = jsCode.split('\n');
-      var inStr = false;
-      var nlErrors = [];
-      for (var li = 0; li < jsLines.length; li++) {
-        var ln = jsLines[li];
-        if (ln.trim().startsWith('//') || ln.includes('`')) continue;
-        var q = (ln.split("'").length - 1) - (ln.split("\\'").length - 1);
-        if (q % 2 === 1) {
-          if (inStr) { inStr = false; }
-          else {
-            inStr = true;
-            if (ln.includes('var ') || ln.includes('let ') || ln.includes('const ')) {
-              nlErrors.push(li + 1);
-            }
-          }
-        }
-      }
-      if (nlErrors.length > 0) {
-        throw new Error('⚠️ Validazione fallita: il codice generato contiene newline letterali nelle stringhe JS (righe JS: ' + nlErrors.slice(0,3).join(', ') + '). La modifica NON è stata pubblicata. Riprova descrivendo la modifica in modo diverso.');
-      }
-    }
-
-    // 2. Verifica window.showView presente
-    if (!newCode.includes('window.showView = showView')) {
-      throw new Error('⚠️ Validazione fallita: il codice generato manca di window.showView. La modifica NON è stata pubblicata. Riprova.');
-    }
-
-    // 3. Verifica tag script non rotto
-    var scriptOpen = (newCode.match(/<script/g) || []).length;
-    var scriptClose = (newCode.match(/<\/script>/g) || []).length;
-    if (scriptOpen !== scriptClose) {
-      throw new Error('⚠️ Validazione fallita: tag script non bilanciati (' + scriptOpen + ' aperti, ' + scriptClose + ' chiusi). La modifica NON è stata pubblicata.');
-    }
-
-    // 3. Pubblica su GitHub — inserisce timestamp come firma per verifica deploy
-    var deployTimestamp = Date.now().toString();
-    newCode = newCode.replace('</head>', '<meta name="deploy-ts" content="' + deployTimestamp + '"></head>');
-    var encoded = btoa(unescape(encodeURIComponent(newCode)));
-    var pushRes = await fetch('https://api.github.com/repos/YFcreator/hom-linkedin/contents/index.html', {
-      method: 'PUT',
-      headers: {
-        'Authorization': 'token ' + ghToken,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: 'Update: ' + msg.substring(0, 60),
-        content: encoded,
-        sha: sha
-      })
-    });
-
-    if (!pushRes.ok) throw new Error('Errore pubblicazione su GitHub');
-
-    var pushData = await pushRes.json();
-    var newSha = pushData.content ? pushData.content.sha : null;
-
-    updateChatHistory.push({ role: 'assistant', content: '✅ Modifiche pubblicate su GitHub. Attendo deploy...' });
-
-    // Mostra bubble con countdown e polling
-    replyBubble.innerHTML =
-      '<div style="color: var(--green); font-weight: 600; margin-bottom: 10px;">✅ Pubblicato su GitHub!</div>' +
-      '<div id="deploy-status" style="font-size: 12px; color: var(--gray-light); margin-bottom: 10px;">⏳ Attendo che GitHub Pages aggiorni il sito...</div>' +
-      '<div id="deploy-bar-wrap" style="background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; margin-bottom: 12px; overflow: hidden;">' +
-        '<div id="deploy-bar" style="height: 4px; background: var(--gold); width: 0%; transition: width 1s linear; border-radius: 4px;"></div>' +
-      '</div>' +
-      '<div id="deploy-link" style="display: none;">' +
-        '<a href="https://yfcreator.github.io/hom-linkedin?v=' + Date.now() + '" target="_blank" ' +
-        'style="display: block; text-align: center; background: var(--gold); color: var(--black); padding: 10px 20px; border-radius: 6px; font-family: Syne, sans-serif; font-weight: 600; font-size: 13px; text-decoration: none;">' +
-        '🚀 Apri app aggiornata →</a>' +
-      '</div>';
-
-    // Polling: controlla ogni 5s se GitHub Pages ha deployato (max 3 minuti)
-    var pollCount = 0;
-    var maxPolls = 36; // 36 * 5s = 3 minuti
-    var deployBar = document.getElementById('deploy-bar');
-    var deployStatus = document.getElementById('deploy-status');
-    var deployLink = document.getElementById('deploy-link');
-
-    var pollInterval = setInterval(async function() {
-      pollCount++;
-      // Aggiorna barra progressione (stima lineare su 90 secondi)
-      var pct = Math.min(95, (pollCount / 18) * 100);
-      if (deployBar) deployBar.style.width = pct + '%';
-
-      try {
-        // Controlla SHA su GitHub Pages direttamente tramite timestamp nel HTML
-        var checkRes = await fetch('https://yfcreator.github.io/hom-linkedin?' + Date.now(), { cache: 'no-store' });
-        if (checkRes.ok) {
-          var pageHtml = await checkRes.text();
-          // Verifica firma timestamp precisa — certifica che è la versione nuova
-          if (pageHtml.includes('deploy-ts" content="' + deployTimestamp + '"')) {
-            clearInterval(pollInterval);
-            if (deployBar) deployBar.style.width = '100%';
-            if (deployBar) deployBar.style.background = 'var(--green)';
-            if (deployStatus) deployStatus.innerHTML = '✅ Sito aggiornato e pronto!';
-            if (deployLink) deployLink.style.display = 'block';
-            showToast('🚀 App aggiornata — clicca per aprirla!', 'success');
-            return;
-          }
-        }
-      } catch(e) { /* continua polling */ }
-
-      if (pollCount >= maxPolls) {
-        clearInterval(pollInterval);
-        if (deployBar) deployBar.style.width = '100%';
-        if (deployStatus) deployStatus.innerHTML = '⚠️ Timeout — prova ad aprire manualmente tra qualche secondo.';
-        if (deployLink) deployLink.style.display = 'block';
-      }
-    }, 5000);
-
-    showToast('✅ Pubblicato! Attendo deploy...', 'success');
-
-  } catch(e) {
-    updateChatHistory.push({ role: 'assistant', content: 'Errore: ' + e.message });
-    replyBubble.innerHTML = '<div style="color: var(--red);">❌ ' + e.message + '</div>';
-    showToast('Errore aggiornamento', 'error');
-  }
-
-  btn.disabled = false;
-  btn.innerHTML = '↑';
-}
-
-// ===== PROFILO LINKEDIN =====
-async function generateProfile() {
-  var btn = document.getElementById('gen-profile-btn');
-  var result = document.getElementById('profile-result');
-  var loading = document.getElementById('profile-loading');
-  var apiKey = localStorage.getItem('hom_api_key');
-
-  if (!apiKey) {
-    showToast('Configura prima la API Key in Impostazioni', 'error');
-    showView('impostazioni');
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Generando...';
-  result.style.display = 'none';
-  loading.style.display = 'block';
-
-  var kb = localStorage.getItem('hom_knowledge') ? JSON.parse(localStorage.getItem('hom_knowledge')) : {};
-
-  var prompt = 'Sei un esperto di personal branding LinkedIn per aziende musicali.\n\n' +
-    'Genera i testi ottimizzati per il profilo LinkedIn di House of Music (HOM).\n\n' +
-    'DATI AZIENDA:\n' +
-    'Nome: House of Music (HOM)\n' +
-    'Descrizione: ' + (kb.desc || 'Primo ecosistema musicale indipendente italiano, federazione di etichette indipendenti con sede a Milano.') + '\n' +
-    'Valori: ' + (kb.values || 'Indipendenza come vantaggio competitivo, song-driven model, there is room for everyone.') + '\n' +
-    'Target: ' + (kb.audience || 'Investitori musicali, artisti indie, manager, addetti ai lavori.') + '\n' +
-    'Etichette: Asian Fake, FLUIDOSTUDIO, Peroni Dischi, Stolen Goods, Revolutional, GenUs\n' +
-    'News: ' + (kb.news || '') + '\n\n' +
-    'Genera in italiano:\n\n' +
-    '1. TITOLO (max 220 caratteri): headline professionale accattivante\n\n' +
-    '2. ABOUT (max 2600 caratteri): sommario completo che racconta la visione, il modello, le etichette e i valori. Inizia con una frase hook forte.\n\n' +
-    '3. IN EVIDENZA (3 spunti): idee per i 3 contenuti da mettere in evidenza nel profilo (articoli, post, link)\n\n' +
-    'Formato risposta:\n' +
-    'TITOLO:\n[testo]\n\nABOUT:\n[testo]\n\nIN EVIDENZA:\n[testo]';
-
+  document.getElementById('profile-result').style.display = 'none';
+  document.getElementById('profile-loading').style.display = 'block';
+  var kb = knowledge;
+  var prompt = 'Sei un esperto di personal branding LinkedIn per aziende musicali.\n\nGenera i testi ottimizzati per il profilo LinkedIn di House of Music (HOM).\n\nDATI:\nNome: House of Music (HOM)\nDescrizione: ' + (kb.desc || 'Ecosistema musicale indipendente italiano con sede a Milano.') + '\nValori: ' + (kb.values || 'Indipendenza, song-driven model.') + '\nTarget: ' + (kb.audience || 'Investitori musicali, artisti indie, manager.') + '\nEtichette: Asian Fake, FLUIDOSTUDIO, Peroni Dischi, Stolen Goods, Revolutional, GenUs\nNews: ' + (kb.news || '') + '\n\nGenera in italiano:\n1. TITOLO (max 220 caratteri)\n2. ABOUT (max 2600 caratteri)\n3. IN EVIDENZA (3 spunti)\n\nFormato:\nTITOLO:\n[testo]\n\nABOUT:\n[testo]\n\nIN EVIDENZA:\n[testo]';
   try {
     var res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
     });
-
     var data = await res.json();
     var text = data.content[0].text;
-
-    var headlineMatch = text.match(/TITOLO:\n([\s\S]*?)(?=\n\nABOUT:)/);
-    var aboutMatch = text.match(/ABOUT:\n([\s\S]*?)(?=\n\nIN EVIDENZA:)/);
-    var featuredMatch = text.match(/IN EVIDENZA:\n([\s\S]*?)$/);
-
-    var headline = headlineMatch ? headlineMatch[1].trim() : '';
-    var about = aboutMatch ? aboutMatch[1].trim() : '';
-    var featured = featuredMatch ? featuredMatch[1].trim() : '';
-
-    document.getElementById('profile-headline').textContent = headline;
-    document.getElementById('profile-about').textContent = about;
-    document.getElementById('profile-featured').textContent = featured;
-    document.getElementById('about-chars').textContent = about.length + ' / 2600 caratteri';
-
-    loading.style.display = 'none';
-    result.style.display = 'block';
+    var h = text.match(/TITOLO:\n([\s\S]*?)(?=\n\nABOUT:)/);
+    var a = text.match(/ABOUT:\n([\s\S]*?)(?=\n\nIN EVIDENZA:)/);
+    var f = text.match(/IN EVIDENZA:\n([\s\S]*?)$/);
+    document.getElementById('profile-headline').textContent = h ? h[1].trim() : '';
+    document.getElementById('profile-about').textContent = a ? a[1].trim() : '';
+    document.getElementById('profile-featured').textContent = f ? f[1].trim() : '';
+    var aboutText = a ? a[1].trim() : '';
+    document.getElementById('about-chars').textContent = aboutText.length + ' / 2600';
+    document.getElementById('profile-loading').style.display = 'none';
+    document.getElementById('profile-result').style.display = 'block';
     showToast('Profilo generato!', 'success');
-
   } catch(e) {
-    loading.style.display = 'none';
+    document.getElementById('profile-loading').style.display = 'none';
     showToast('Errore generazione profilo', 'error');
   }
-
   btn.disabled = false;
-  btn.innerHTML = '👤 Genera con AI';
+  btn.innerHTML = 'Genera con AI';
 }
 
-function copyText(elementId) {
-  var el = document.getElementById(elementId);
-  if (!el) return;
-  var text = el.textContent;
-  navigator.clipboard.writeText(text).then(function() {
-    showToast('Copiato negli appunti!', 'success');
-  }).catch(function() {
+function copyText(id) {
+  var text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(function() { showToast('Copiato!', 'success'); }).catch(function() {
     var ta = document.createElement('textarea');
     ta.value = text;
     document.body.appendChild(ta);
@@ -2821,48 +1416,246 @@ function copyText(elementId) {
   });
 }
 
-// ===== START =====
+// ===== N8N INTEGRATION =====
+function saveN8nConfig() {
+  var pubUrl = document.getElementById('n8n-publish-url').value.trim();
+  var metUrl = document.getElementById('n8n-metrics-url').value.trim();
+  if (pubUrl) localStorage.setItem('hom_n8n_publish', pubUrl);
+  if (metUrl) localStorage.setItem('hom_n8n_metrics', metUrl);
+  checkN8n();
+  showToast('Configurazione N8N salvata', 'success');
+}
+
+function checkN8n() {
+  var pubUrl = localStorage.getItem('hom_n8n_publish');
+  var metUrl = localStorage.getItem('hom_n8n_metrics');
+  var hasPub = !!pubUrl;
+  var hasMet = !!metUrl;
+  // Settings page dots
+  var dot = document.getElementById('n8n-dot');
+  var txt = document.getElementById('n8n-status-text');
+  if (dot) { dot.classList.toggle('ok', hasPub); }
+  if (txt) { txt.textContent = hasPub ? (hasMet ? 'Pubblicazione + Metriche attive' : 'Solo pubblicazione attiva') : 'Non configurato'; }
+  // Sidebar dots
+  var sDot = document.getElementById('n8n-sidebar-dot');
+  var sTxt = document.getElementById('n8n-sidebar-text');
+  if (sDot) { sDot.classList.toggle('ok', hasPub); }
+  if (sTxt) { sTxt.textContent = hasPub ? 'LinkedIn attivo' : 'LinkedIn N8N'; }
+  // Load saved URLs into inputs
+  var pubInput = document.getElementById('n8n-publish-url');
+  var metInput = document.getElementById('n8n-metrics-url');
+  if (pubInput && pubUrl && !pubInput.value) pubInput.value = pubUrl;
+  if (metInput && metUrl && !metInput.value) metInput.value = metUrl;
+}
+
+function isN8nConfigured() {
+  return !!localStorage.getItem('hom_n8n_publish');
+}
+
+// ===== READY POSTS (scheduled time has passed) =====
+function getReadyPosts() {
+  var now = new Date().toISOString();
+  return posts.filter(function(p) {
+    return p.status === 'pending' && p.scheduledDate && p.scheduledDate <= now;
+  });
+}
+
+function checkReadyPosts() {
+  var ready = getReadyPosts();
+  if (ready.length > 0) {
+    // Show badge in piano nav
+    var badge = document.getElementById('badge-pending');
+    badge.textContent = ready.length;
+    badge.style.display = 'inline';
+    badge.style.background = 'var(--red)';
+    badge.style.color = 'white';
+  }
+}
+
+function renderReadyPosts() {
+  var el = document.getElementById('piano-ready');
+  if (!el) return;
+  var ready = getReadyPosts();
+  if (!ready.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = '<div class="ready-banner">' +
+    '<div class="ready-title">' + ready.length + ' post pronti per la pubblicazione</div>' +
+    '<div class="ready-sub">L\'orario pianificato è passato — conferma la pubblicazione</div>' +
+    '</div>' +
+    ready.map(function(p) {
+      var d = new Date(p.scheduledDate);
+      var dateLabel = d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
+      var timeLabel = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      return '<div class="post-card" style="border-color:var(--gold);">' +
+        '<div class="post-card-header">' +
+          '<span class="post-card-status ready">Pronto</span>' +
+          '<span class="post-card-date">' + dateLabel + ' · ' + timeLabel + '</span>' +
+          '<span class="post-card-topic">' + (p.topic || '') + '</span>' +
+        '</div>' +
+        '<div class="post-card-text" style="-webkit-line-clamp:none; display:block;">' + escapeHtml(p.text || '') + '</div>' +
+        '<div class="post-card-actions">' +
+          '<button class="btn btn-success" onclick="openPublish(' + p.id + ')">Pubblica su LinkedIn</button>' +
+          '<button class="btn btn-outline btn-sm" onclick="openEdit(' + p.id + ')">Modifica</button>' +
+          '<button class="btn btn-ghost btn-sm" onclick="unschedule(' + p.id + ')">Rimanda</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+}
+
+// ===== PUBLISH VIA N8N =====
+async function publishViaN8n() {
+  if (!_publishId) return;
+  var idx = posts.findIndex(function(p) { return p.id === _publishId; });
+  if (idx === -1) return;
+
+  var webhookUrl = localStorage.getItem('hom_n8n_publish');
+  if (!webhookUrl) { showToast('Configura il webhook N8N nelle Impostazioni', 'error'); return; }
+
+  var btn = document.getElementById('pub-n8n-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Pubblicando...';
+
+  try {
+    var res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: posts[idx].text,
+        topic: posts[idx].topic || '',
+        scheduledDate: posts[idx].scheduledDate || ''
+      })
+    });
+
+    var data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Errore pubblicazione');
+
+    posts[idx].status = 'published';
+    posts[idx].publishedAt = new Date().toISOString();
+    posts[idx].linkedinUrl = data.linkedinUrl || null;
+    posts[idx].postUrn = data.postUrn || null;
+    posts[idx].metrics = { impressions: 0, reactions: 0, comments: 0, shares: 0 };
+
+    savePosts();
+    closePublishModal();
+    renderReadyPosts();
+    renderPianoPending();
+    renderCalendar();
+    renderStorico();
+    renderAnalytics();
+    updateBadge();
+    showToast('Pubblicato su LinkedIn!', 'success');
+
+  } catch(e) {
+    showToast('Errore N8N: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Pubblica ora su LinkedIn';
+}
+
+// ===== FETCH METRICS VIA N8N =====
+async function fetchAllMetrics() {
+  var webhookUrl = localStorage.getItem('hom_n8n_metrics');
+  if (!webhookUrl) { showToast('Configura il webhook metriche N8N nelle Impostazioni', 'error'); return; }
+
+  var published = posts.filter(function(p) { return p.status === 'published' && p.postUrn; });
+  if (!published.length) { showToast('Nessun post con URN LinkedIn — pubblica tramite N8N per avere metriche automatiche', 'error'); return; }
+
+  var btn = document.getElementById('fetch-metrics-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Aggiornando...';
+
+  var updated = 0;
+  for (var i = 0; i < published.length; i++) {
+    try {
+      var res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postUrn: published[i].postUrn })
+      });
+      var data = await res.json();
+      var idx = posts.findIndex(function(p) { return p.id === published[i].id; });
+      if (idx !== -1 && data) {
+        posts[idx].metrics = {
+          impressions: data.impressions || posts[idx].metrics.impressions || 0,
+          reactions: data.reactions || posts[idx].metrics.reactions || 0,
+          comments: data.comments || posts[idx].metrics.comments || 0,
+          shares: data.shares || posts[idx].metrics.shares || 0
+        };
+        updated++;
+      }
+    } catch(e) { /* skip this post */ }
+  }
+
+  savePosts();
+  renderAnalytics();
+  renderStorico();
+  btn.disabled = false;
+  btn.innerHTML = 'Aggiorna metriche da LinkedIn';
+  showToast(updated + ' post aggiornati con metriche LinkedIn', 'success');
+}
+
+// ===== UTILITIES =====
+function savePosts() { localStorage.setItem('hom_posts', JSON.stringify(posts)); }
+
+function updateBadge() {
+  var pending = posts.filter(function(p) { return p.status === 'pending' && !p.scheduledDate; });
+  var badge = document.getElementById('badge-pending');
+  badge.textContent = pending.length;
+  badge.style.display = pending.length > 0 ? 'inline' : 'none';
+}
+
+function updateCharCount(editorId, countId) {
+  var el = document.getElementById(editorId);
+  var cnt = document.getElementById(countId);
+  if (!el || !cnt) return;
+  cnt.textContent = el.value.length + ' / 1300';
+  cnt.classList.toggle('over', el.value.length > 1300);
+}
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || 'success') + ' show';
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+function escapeHtml(text) {
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ===== EXPOSE & START =====
 window.showView = showView;
-window.generatePost = generatePost;
 window.generatePosts = generatePosts;
 window.approveSingle = approveSingle;
-window.deleteProposal = deleteProposal;
-window.selectAllProposals = selectAllProposals;
-window.approveSelected = approveSelected;
-window.approveGenerated = approveGenerated;
-window.saveAsDraft = saveAsDraft;
-window.openReview = openReview;
-window.closeModal = closeModal;
-window.publishPost = publishPost;
-window.deletePost = deletePost;
-window.quickPublish = quickPublish;
-window.confirmDelete = confirmDelete;
-window.removeFromPlan = removeFromPlan;
-window.toggleStar = toggleStar;
-window.filterPosts = filterPosts;
+window.discardSingle = discardSingle;
+window.approveAll = approveAll;
+window.discardAll = discardAll;
+window.distributePlan = distributePlan;
 window.changeMonth = changeMonth;
 window.showDayPosts = showDayPosts;
-window.openCalModal = openCalModal;
-window.closeCalModal = closeCalModal;
-window.switchCalTab = switchCalTab;
-window.pickExistingPost = pickExistingPost;
-window.generateCalPost = generateCalPost;
-window.saveCalPost = saveCalPost;
+window.unschedule = unschedule;
+window.openPublish = openPublish;
+window.closePublishModal = closePublishModal;
+window.confirmPublish = confirmPublish;
+window.openEdit = openEdit;
+window.closeEditModal = closeEditModal;
+window.saveEdit = saveEdit;
+window.deletePost = deletePost;
+window.resetAllPosts = resetAllPosts;
+window.filterPosts = filterPosts;
 window.saveKnowledge = saveKnowledge;
 window.exportKnowledge = exportKnowledge;
-window.toggleKbSaved = toggleKbSaved;
 window.saveApiKey = saveApiKey;
 window.testApiKey = testApiKey;
-window.updatePreview = updatePreview;
-window.updateModalPreview = updateModalPreview;
-window.updateApp = updateApp;
-window.generateCalendarPlan = generateCalendarPlan;
-window.schedulePost = schedulePost;
-window.saveGithubToken = saveGithubToken;
-window.sendUpdateMessage = sendUpdateMessage;
-window.initUpdateView = initUpdateView;
 window.generateProfile = generateProfile;
 window.copyText = copyText;
+window.saveN8nConfig = saveN8nConfig;
+window.publishViaN8n = publishViaN8n;
+window.fetchAllMetrics = fetchAllMetrics;
+
 init();
 </script>
 </body>
