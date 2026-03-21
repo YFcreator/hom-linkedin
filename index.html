@@ -356,6 +356,7 @@ textarea.post-editor:focus { border-color:var(--gold); }
           <select id="gen-label">
             <option value="">HOM generale</option>
             <option value="Asian Fake">Asian Fake</option>
+            <option value="Fluidostudio">Fluidostudio</option>
             <option value="MONKSTA">MONKSTA</option>
             <option value="Peroni Dischi">Peroni Dischi</option>
             <option value="Stolen Goods">Stolen Goods</option>
@@ -811,7 +812,7 @@ textarea.post-editor:focus { border-color:var(--gold); }
 
 <script>
 // ==========================================================
-// HOM LinkedIn Manager — v2.0 Secure + Multi-brand
+// HOM LinkedIn Manager — v2.1 Encrypted + Multi-brand
 // ==========================================================
 
 // ===== STATE =====
@@ -825,11 +826,148 @@ var _proposals = [];
 var _selectedBrand = 'hom'; // 'hom' or 'personal'
 var _kbFiles = []; // uploaded file texts
 
+// ===== SECURITY: CRYPTO ENGINE =====
+// Sensitive data is encrypted in localStorage using AES-GCM with a PIN-derived key.
+// The decrypted values live ONLY in memory (_secrets) during the session.
+var _secrets = {}; // in-memory store for decrypted sensitive data
+var _cryptoKey = null; // AES-GCM key derived from PIN
+var _autoLockTimer = null;
+var AUTO_LOCK_MINUTES = 15;
+var MAX_PIN_ATTEMPTS = 5;
+var LOCKOUT_SECONDS = 60;
+var SENSITIVE_KEYS = ['hom_api_key', 'hom_github_token', 'hom_n8n_publish', 'hom_n8n_metrics', 'hom_n8n_personal_publish'];
+
+// SHA-256 hash via Web Crypto
+async function sha256(str) {
+  var buf = new TextEncoder().encode(str);
+  var hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
+
+// Derive AES-GCM key from PIN + salt using PBKDF2
+async function deriveKey(pin, salt) {
+  var enc = new TextEncoder();
+  var keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+// Encrypt a string with AES-GCM
+async function encryptValue(plaintext, key) {
+  var enc = new TextEncoder();
+  var iv = crypto.getRandomValues(new Uint8Array(12));
+  var ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, enc.encode(plaintext));
+  // Store as iv:ciphertext in base64
+  var ivB64 = btoa(String.fromCharCode.apply(null, iv));
+  var ctB64 = btoa(String.fromCharCode.apply(null, new Uint8Array(ciphertext)));
+  return ivB64 + ':' + ctB64;
+}
+
+// Decrypt a string with AES-GCM
+async function decryptValue(stored, key) {
+  try {
+    var parts = stored.split(':');
+    if (parts.length !== 2) return null;
+    var iv = new Uint8Array(atob(parts[0]).split('').map(function(c) { return c.charCodeAt(0); }));
+    var ct = new Uint8Array(atob(parts[1]).split('').map(function(c) { return c.charCodeAt(0); }));
+    var decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ct);
+    return new TextDecoder().decode(decrypted);
+  } catch(e) {
+    return null;
+  }
+}
+
+// Secure get: read from memory
+function secureGet(key) {
+  return _secrets[key] || null;
+}
+
+// Secure set: write to memory + encrypt to localStorage
+async function secureSet(key, value) {
+  _secrets[key] = value;
+  if (_cryptoKey && value) {
+    var encrypted = await encryptValue(value, _cryptoKey);
+    localStorage.setItem('enc_' + key, encrypted);
+  }
+}
+
+// Decrypt all sensitive data from localStorage into memory
+async function decryptAllSecrets(key) {
+  for (var i = 0; i < SENSITIVE_KEYS.length; i++) {
+    var k = SENSITIVE_KEYS[i];
+    var encrypted = localStorage.getItem('enc_' + k);
+    if (encrypted) {
+      var val = await decryptValue(encrypted, key);
+      if (val) _secrets[k] = val;
+    }
+    // Migration: if old unencrypted value exists, encrypt it
+    var oldVal = localStorage.getItem(k);
+    if (oldVal && !encrypted) {
+      _secrets[k] = oldVal;
+      var enc = await encryptValue(oldVal, key);
+      localStorage.setItem('enc_' + k, enc);
+      localStorage.removeItem(k); // remove plaintext
+    }
+  }
+}
+
+// Clear secrets from memory (on lock)
+function clearSecrets() {
+  _secrets = {};
+  _cryptoKey = null;
+}
+
+// ===== AUTO-LOCK =====
+function resetAutoLock() {
+  if (_autoLockTimer) clearTimeout(_autoLockTimer);
+  _autoLockTimer = setTimeout(function() {
+    lockApp();
+  }, AUTO_LOCK_MINUTES * 60 * 1000);
+}
+
+function lockApp() {
+  clearSecrets();
+  posts = [];
+  knowledge = {};
+  _kbFiles = [];
+  _proposals = [];
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('auth-pin').value = '';
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-title').textContent = 'Sessione scaduta';
+  document.getElementById('auth-sub').textContent = 'Reinserisci il PIN per continuare';
+  document.getElementById('auth-btn').textContent = 'Accedi';
+}
+
+// Track activity for auto-lock
+['click', 'keydown', 'mousemove', 'scroll'].forEach(function(evt) {
+  document.addEventListener(evt, function() {
+    if (_cryptoKey) resetAutoLock();
+  }, { passive: true });
+});
+
+// ===== BRUTE FORCE PROTECTION =====
+var _pinAttempts = 0;
+var _lockoutUntil = 0;
+
+function checkLockout() {
+  if (_lockoutUntil > Date.now()) {
+    var secs = Math.ceil((_lockoutUntil - Date.now()) / 1000);
+    document.getElementById('auth-error').textContent = 'Troppi tentativi. Riprova tra ' + secs + ' secondi';
+    return true;
+  }
+  return false;
+}
+
 // ===== AUTH =====
 function checkAuth() {
   var storedHash = localStorage.getItem('hom_pin_hash');
   if (!storedHash) {
-    // First time — set up PIN
     document.getElementById('auth-title').textContent = 'Crea il tuo PIN';
     document.getElementById('auth-sub').textContent = 'Scegli un PIN di 4-6 cifre per proteggere l\'app';
     document.getElementById('auth-btn').textContent = 'Imposta PIN';
@@ -840,51 +978,101 @@ function checkAuth() {
   }
 }
 
-function handleAuth() {
+async function handleAuth() {
+  if (checkLockout()) return;
+
   var pin = document.getElementById('auth-pin').value.trim();
   if (pin.length < 4 || pin.length > 6) {
     document.getElementById('auth-error').textContent = 'Il PIN deve essere di 4-6 cifre';
     return;
   }
 
+  var btn = document.getElementById('auth-btn');
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+
   var storedHash = localStorage.getItem('hom_pin_hash');
+  var salt = localStorage.getItem('hom_pin_salt');
+
   if (!storedHash) {
-    // Setting PIN for first time
-    localStorage.setItem('hom_pin_hash', simpleHash(pin));
+    // First time: create PIN
+    salt = crypto.getRandomValues(new Uint8Array(16));
+    salt = Array.from(salt).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    localStorage.setItem('hom_pin_salt', salt);
+
+    var hash = await sha256(salt + pin);
+    localStorage.setItem('hom_pin_hash', hash);
+
+    _cryptoKey = await deriveKey(pin, salt);
+    _pinAttempts = 0;
     document.getElementById('auth-screen').classList.add('hidden');
+    resetAutoLock();
     initApp();
     showToast('PIN impostato con successo!', 'success');
   } else {
     // Verify PIN
-    if (simpleHash(pin) === storedHash) {
+    if (!salt) {
+      // Migration from old simple hash: re-setup
+      salt = crypto.getRandomValues(new Uint8Array(16));
+      salt = Array.from(salt).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+      localStorage.setItem('hom_pin_salt', salt);
+      var newHash = await sha256(salt + pin);
+      localStorage.setItem('hom_pin_hash', newHash);
+      _cryptoKey = await deriveKey(pin, salt);
+      _pinAttempts = 0;
       document.getElementById('auth-screen').classList.add('hidden');
+      resetAutoLock();
       initApp();
+      showToast('Sicurezza aggiornata a SHA-256 + AES', 'success');
     } else {
-      document.getElementById('auth-error').textContent = 'PIN errato';
-      document.getElementById('auth-pin').value = '';
+      var hash = await sha256(salt + pin);
+      if (hash === storedHash) {
+        _cryptoKey = await deriveKey(pin, salt);
+        await decryptAllSecrets(_cryptoKey);
+        _pinAttempts = 0;
+        document.getElementById('auth-screen').classList.add('hidden');
+        resetAutoLock();
+        initApp();
+      } else {
+        _pinAttempts++;
+        if (_pinAttempts >= MAX_PIN_ATTEMPTS) {
+          _lockoutUntil = Date.now() + LOCKOUT_SECONDS * 1000;
+          document.getElementById('auth-error').textContent = 'Troppi tentativi! Bloccato per ' + LOCKOUT_SECONDS + ' secondi';
+          _pinAttempts = 0;
+        } else {
+          document.getElementById('auth-error').textContent = 'PIN errato (' + (MAX_PIN_ATTEMPTS - _pinAttempts) + ' tentativi rimasti)';
+        }
+        document.getElementById('auth-pin').value = '';
+      }
     }
   }
+  btn.disabled = false;
+  btn.textContent = storedHash ? 'Accedi' : 'Imposta PIN';
 }
 
-function simpleHash(str) {
-  var hash = 0;
-  for (var i = 0; i < str.length; i++) {
-    var chr = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + chr;
-    hash |= 0;
-  }
-  return 'h_' + Math.abs(hash).toString(36);
-}
-
-function changePin() {
+async function changePin() {
   var newPin = document.getElementById('new-pin-input').value.trim();
   if (newPin.length < 4 || newPin.length > 6) {
     showToast('Il PIN deve essere di 4-6 cifre', 'error');
     return;
   }
-  localStorage.setItem('hom_pin_hash', simpleHash(newPin));
+  // New salt + hash
+  var salt = crypto.getRandomValues(new Uint8Array(16));
+  salt = Array.from(salt).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+  localStorage.setItem('hom_pin_salt', salt);
+  var hash = await sha256(salt + newPin);
+  localStorage.setItem('hom_pin_hash', hash);
+  // Re-derive key and re-encrypt all secrets
+  _cryptoKey = await deriveKey(newPin, salt);
+  for (var i = 0; i < SENSITIVE_KEYS.length; i++) {
+    var k = SENSITIVE_KEYS[i];
+    if (_secrets[k]) {
+      var enc = await encryptValue(_secrets[k], _cryptoKey);
+      localStorage.setItem('enc_' + k, enc);
+    }
+  }
   document.getElementById('new-pin-input').value = '';
-  showToast('PIN aggiornato!', 'success');
+  showToast('PIN aggiornato e dati ri-criptati!', 'success');
 }
 
 // Enter key on PIN input
@@ -906,8 +1094,8 @@ function initApp() {
   checkReadyPosts();
   setDefaultDates();
   renderKbFileList();
-  // Load GitHub token into input
-  var ghToken = localStorage.getItem('hom_github_token');
+  // Load GitHub token into input (from secure memory)
+  var ghToken = secureGet('hom_github_token');
   var ghInput = document.getElementById('github-token-input');
   if (ghInput && ghToken) ghInput.value = ghToken;
 }
@@ -950,23 +1138,24 @@ function showView(id) {
 
 // ===== API =====
 function checkApiKey() {
-  var key = localStorage.getItem('hom_api_key');
+  var key = secureGet('hom_api_key');
   var dot = document.getElementById('api-dot');
   var txt = document.getElementById('api-status-text');
-  if (key) { dot.classList.add('ok'); txt.textContent = 'API attiva'; }
+  if (key) { dot.classList.add('ok'); txt.textContent = 'API attiva (criptata)'; }
   else { dot.classList.remove('ok'); txt.textContent = 'API non configurata'; }
 }
 
 function saveApiKey() {
   var key = document.getElementById('api-key-input').value.trim();
   if (!key) { showToast('Inserisci una API key', 'error'); return; }
-  localStorage.setItem('hom_api_key', key);
+  secureSet('hom_api_key', key);
+  document.getElementById('api-key-input').value = ''; // clear from input
   checkApiKey();
-  showToast('API Key salvata', 'success');
+  showToast('API Key salvata e criptata', 'success');
 }
 
 async function testApiKey() {
-  var key = localStorage.getItem('hom_api_key');
+  var key = secureGet('hom_api_key');
   if (!key) { showToast('Salva prima la API Key', 'error'); return; }
   try {
     var res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1010,7 +1199,7 @@ function buildSystemPrompt(kb) {
 
 // ===== GENERATE POSTS =====
 async function generatePosts() {
-  var apiKey = localStorage.getItem('hom_api_key');
+  var apiKey = secureGet('hom_api_key');
   if (!apiKey) { showToast('Configura la API Key nelle Impostazioni', 'error'); return; }
 
   var count = parseInt(document.getElementById('gen-count').value);
@@ -1168,7 +1357,7 @@ async function distributePlan() {
   var pending = posts.filter(function(p) { return p.status === 'pending' && !p.scheduledDate; });
   if (!pending.length) { showToast('Nessun post da distribuire — genera prima i post', 'error'); return; }
 
-  var apiKey = localStorage.getItem('hom_api_key');
+  var apiKey = secureGet('hom_api_key');
   if (!apiKey) { showToast('Configura la API Key', 'error'); return; }
 
   var btn = document.getElementById('distribute-btn');
@@ -1343,7 +1532,7 @@ function openPublish(id) {
   var title = document.getElementById('pub-modal-title');
   title.textContent = isAlreadyPublished ? 'Aggiorna metriche' : 'Pubblica su LinkedIn';
 
-  var webhookUrl = post.brand === 'personal' ? localStorage.getItem('hom_n8n_personal_publish') : localStorage.getItem('hom_n8n_publish');
+  var webhookUrl = post.brand === 'personal' ? secureGet('hom_n8n_personal_publish') : secureGet('hom_n8n_publish');
   var n8nMode = document.getElementById('pub-mode-n8n');
   var manualMode = document.getElementById('pub-mode-manual');
   if (webhookUrl && !isAlreadyPublished) {
@@ -1777,12 +1966,13 @@ document.addEventListener('DOMContentLoaded', function() {
 function saveGithubToken() {
   var token = document.getElementById('github-token-input').value.trim();
   if (!token) { showToast('Inserisci il token', 'error'); return; }
-  localStorage.setItem('hom_github_token', token);
-  showToast('GitHub token salvato', 'success');
+  secureSet('hom_github_token', token);
+  document.getElementById('github-token-input').value = ''; // clear from input
+  showToast('GitHub token salvato e criptato', 'success');
 }
 
 async function syncKbToGithub() {
-  var token = localStorage.getItem('hom_github_token');
+  var token = secureGet('hom_github_token');
   if (!token) { showToast('Configura il GitHub token nelle Impostazioni', 'error'); return; }
   var kb = localStorage.getItem('hom_knowledge');
   if (!kb) { showToast('Salva prima la Knowledge Base', 'error'); return; }
@@ -1835,7 +2025,7 @@ async function syncKbToGithub() {
 
 // ===== PROFILE =====
 async function generateProfile() {
-  var apiKey = localStorage.getItem('hom_api_key');
+  var apiKey = secureGet('hom_api_key');
   if (!apiKey) { showToast('Configura prima la API Key', 'error'); showView('impostazioni'); return; }
   var btn = document.getElementById('gen-profile-btn');
   btn.disabled = true;
@@ -1874,7 +2064,7 @@ async function generateProfile() {
 
 // ===== PROFILE AUDIT =====
 async function generateProfileAudit() {
-  var apiKey = localStorage.getItem('hom_api_key');
+  var apiKey = secureGet('hom_api_key');
   if (!apiKey) { showToast('Configura prima la API Key', 'error'); return; }
 
   var btn = document.getElementById('gen-audit-btn');
@@ -1962,17 +2152,19 @@ function saveN8nConfig() {
   var pubUrl = document.getElementById('n8n-publish-url').value.trim();
   var metUrl = document.getElementById('n8n-metrics-url').value.trim();
   var personalPubUrl = document.getElementById('n8n-personal-publish-url').value.trim();
-  if (pubUrl) localStorage.setItem('hom_n8n_publish', pubUrl);
-  if (metUrl) localStorage.setItem('hom_n8n_metrics', metUrl);
-  if (personalPubUrl) localStorage.setItem('hom_n8n_personal_publish', personalPubUrl);
+  var saved = 0;
+  if (pubUrl && pubUrl.startsWith('http')) { secureSet('hom_n8n_publish', pubUrl); document.getElementById('n8n-publish-url').value = ''; saved++; }
+  if (metUrl && metUrl.startsWith('http')) { secureSet('hom_n8n_metrics', metUrl); document.getElementById('n8n-metrics-url').value = ''; saved++; }
+  if (personalPubUrl && personalPubUrl.startsWith('http')) { secureSet('hom_n8n_personal_publish', personalPubUrl); document.getElementById('n8n-personal-publish-url').value = ''; saved++; }
   checkN8n();
-  showToast('Configurazione N8N salvata', 'success');
+  if (saved > 0) showToast(saved + ' webhook salvati e criptati', 'success');
+  else showToast('Inserisci almeno un URL webhook', 'error');
 }
 
 function checkN8n() {
-  var pubUrl = localStorage.getItem('hom_n8n_publish');
-  var metUrl = localStorage.getItem('hom_n8n_metrics');
-  var personalUrl = localStorage.getItem('hom_n8n_personal_publish');
+  var pubUrl = secureGet('hom_n8n_publish');
+  var metUrl = secureGet('hom_n8n_metrics');
+  var personalUrl = secureGet('hom_n8n_personal_publish');
   var hasPub = !!pubUrl;
   var hasMet = !!metUrl;
   var dot = document.getElementById('n8n-dot');
@@ -1989,17 +2181,17 @@ function checkN8n() {
   var sTxt = document.getElementById('n8n-sidebar-text');
   if (sDot) { sDot.classList.toggle('ok', hasPub); }
   if (sTxt) { sTxt.textContent = hasPub ? 'LinkedIn attivo' : 'LinkedIn N8N'; }
-  // Load saved URLs into inputs
+  // Don't load sensitive values into inputs — show only status
   var pubInput = document.getElementById('n8n-publish-url');
   var metInput = document.getElementById('n8n-metrics-url');
   var persInput = document.getElementById('n8n-personal-publish-url');
-  if (pubInput && pubUrl && !pubInput.value) pubInput.value = pubUrl;
-  if (metInput && metUrl && !metInput.value) metInput.value = metUrl;
-  if (persInput && personalUrl && !persInput.value) persInput.value = personalUrl;
+  if (pubInput && pubUrl && !pubInput.value) pubInput.placeholder = 'Configurato (inserisci nuovo URL per aggiornare)';
+  if (metInput && metUrl && !metInput.value) metInput.placeholder = 'Configurato (inserisci nuovo URL per aggiornare)';
+  if (persInput && personalUrl && !persInput.value) persInput.placeholder = 'Configurato (inserisci nuovo URL per aggiornare)';
 }
 
 function isN8nConfigured() {
-  return !!localStorage.getItem('hom_n8n_publish');
+  return !!secureGet('hom_n8n_publish');
 }
 
 // ===== READY POSTS =====
@@ -2060,7 +2252,7 @@ async function publishViaN8n() {
   if (idx === -1) return;
 
   var post = posts[idx];
-  var webhookUrl = post.brand === 'personal' ? localStorage.getItem('hom_n8n_personal_publish') : localStorage.getItem('hom_n8n_publish');
+  var webhookUrl = post.brand === 'personal' ? secureGet('hom_n8n_personal_publish') : secureGet('hom_n8n_publish');
   if (!webhookUrl) { showToast('Configura il webhook N8N nelle Impostazioni', 'error'); return; }
 
   var btn = document.getElementById('pub-n8n-btn');
@@ -2108,7 +2300,7 @@ async function publishViaN8n() {
 
 // ===== FETCH METRICS VIA N8N =====
 async function fetchAllMetrics() {
-  var webhookUrl = localStorage.getItem('hom_n8n_metrics');
+  var webhookUrl = secureGet('hom_n8n_metrics');
   if (!webhookUrl) { showToast('Configura il webhook metriche N8N nelle Impostazioni', 'error'); return; }
 
   var published = posts.filter(function(p) { return p.status === 'published' && p.postUrn; });
