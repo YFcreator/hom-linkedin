@@ -707,6 +707,26 @@ textarea.post-editor:focus { border-color:var(--gold); }
     </div>
 
     <div class="card" style="margin-bottom:24px;">
+      <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold); margin-bottom:16px;">Webhook Secret (autenticazione N8N)</div>
+      <div style="font-size:13px; color:var(--gray-light); line-height:1.6; margin-bottom:16px;">
+        Token segreto inviato come header <code style="color:var(--gold);">X-Webhook-Secret</code> in ogni chiamata webhook. Configuralo anche in N8N per verificare che le richieste arrivino da questa app.
+      </div>
+      <div class="field">
+        <label>Secret condiviso</label>
+        <div style="display:flex; gap:8px;">
+          <input type="password" id="webhook-secret-input" placeholder="Inserisci un token segreto..." style="flex:1;">
+          <button class="btn btn-outline btn-sm" onclick="saveWebhookSecret()">Salva</button>
+          <button class="btn btn-ghost btn-sm" onclick="generateWebhookSecret()">Genera</button>
+        </div>
+        <div style="font-size:11px; color:var(--gray); font-family:'DM Mono',monospace; margin-top:4px;">Usa lo stesso valore nel nodo "Header Auth" di ogni workflow N8N. Criptato in locale.</div>
+      </div>
+      <div id="secret-status" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+        <div class="api-dot" id="secret-dot"></div>
+        <span style="font-size:11px; color:var(--gray); font-family:'DM Mono',monospace;" id="secret-status-text">Nessun secret configurato</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px;">
       <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold); margin-bottom:16px;">GitHub — Persistenza Knowledge Base</div>
       <div class="field">
         <label>GitHub Personal Access Token</label>
@@ -747,7 +767,11 @@ textarea.post-editor:focus { border-color:var(--gold); }
           <strong style="color:var(--gold);">5. Workflow "Pubblica Automatico" (Cron)</strong><br>
           Trigger: Schedule (ogni 15 min) → Google Sheets: Read All Rows → Filter: scheduledDate ≤ NOW() AND status="pending" → Per ogni riga: IF brand="personal" → chiama webhook Pubblica Personale, ELSE → chiama webhook Pubblica HOM → Google Sheets: Update Row (status="published") → (opzionale) Delete Row dal foglio<br><br>
           <strong style="color:var(--gray-light);">Google Sheet — colonne richieste:</strong><br>
-          id | text | topic | scheduledDate | brand | label | status
+          id | text | topic | scheduledDate | brand | label | status<br><br>
+          <strong style="color:var(--red);">Sicurezza: Header Auth su OGNI workflow</strong><br>
+          In ogni workflow N8N, dopo il nodo Webhook, aggiungi un nodo IF che verifica:<br>
+          <code style="color:var(--gold);">{{ $json.headers['x-webhook-secret'] }} === "IL_TUO_SECRET"</code><br>
+          Usa lo stesso secret configurato sopra. Se non corrisponde → Respond to Webhook con errore 403. Questo impedisce a chiunque conosca l'URL di usare i tuoi webhook.
         </div>
       </div>
     </details>
@@ -867,7 +891,7 @@ var _autoLockTimer = null;
 var AUTO_LOCK_MINUTES = 15;
 var MAX_PIN_ATTEMPTS = 5;
 var LOCKOUT_SECONDS = 60;
-var SENSITIVE_KEYS = ['hom_api_key', 'hom_github_token', 'hom_n8n_publish', 'hom_n8n_metrics', 'hom_n8n_personal_publish', 'hom_n8n_queue'];
+var SENSITIVE_KEYS = ['hom_api_key', 'hom_github_token', 'hom_n8n_publish', 'hom_n8n_metrics', 'hom_n8n_personal_publish', 'hom_n8n_queue', 'hom_webhook_secret'];
 
 // SHA-256 hash via Web Crypto
 async function sha256(str) {
@@ -1129,6 +1153,7 @@ function initApp() {
   loadKbFiles();
   checkApiKey();
   checkN8n();
+  checkWebhookSecret();
   renderCalendar();
   renderStorico();
   renderAnalytics();
@@ -2312,14 +2337,49 @@ function isQueueConfigured() {
   return !!secureGet('hom_n8n_queue');
 }
 
-/// ===== QUEUE: SEND TO GOOGLE SHEET VIA N8N =====
+/// ===== WEBHOOK SECRET =====
+function getWebhookHeaders() {
+  var headers = { 'Content-Type': 'application/json' };
+  var secret = secureGet('hom_webhook_secret');
+  if (secret) headers['X-Webhook-Secret'] = secret;
+  return headers;
+}
+
+function saveWebhookSecret() {
+  var val = document.getElementById('webhook-secret-input').value.trim();
+  if (!val) { showToast('Inserisci un secret', 'error'); return; }
+  if (val.length < 16) { showToast('Il secret deve essere almeno 16 caratteri', 'error'); return; }
+  secureSet('hom_webhook_secret', val);
+  document.getElementById('webhook-secret-input').value = '';
+  checkWebhookSecret();
+  showToast('Webhook secret salvato e criptato', 'success');
+}
+
+function generateWebhookSecret() {
+  var arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  var token = Array.from(arr).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+  document.getElementById('webhook-secret-input').value = token;
+  document.getElementById('webhook-secret-input').type = 'text';
+  showToast('Secret generato — salvalo e copialo per N8N', 'success');
+}
+
+function checkWebhookSecret() {
+  var has = !!secureGet('hom_webhook_secret');
+  var dot = document.getElementById('secret-dot');
+  var txt = document.getElementById('secret-status-text');
+  if (dot) dot.classList.toggle('ok', has);
+  if (txt) txt.textContent = has ? 'Secret configurato — webhook autenticati' : 'Nessun secret configurato';
+}
+
+// ===== QUEUE: SEND TO GOOGLE SHEET VIA N8N =====
 async function sendToQueue(post, action) {
   var queueUrl = secureGet('hom_n8n_queue');
   if (!queueUrl) return false;
   try {
     var res = await fetch(queueUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getWebhookHeaders(),
       body: JSON.stringify({
         action: action, // "queue" or "cancel"
         id: String(post.id),
@@ -2436,7 +2496,7 @@ async function publishViaN8n() {
   try {
     var res = await fetch(webhookUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getWebhookHeaders(),
       body: JSON.stringify({
         text: post.text,
         topic: post.topic || '',
@@ -2489,7 +2549,7 @@ async function fetchAllMetrics() {
     try {
       var res = await fetch(webhookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getWebhookHeaders(),
         body: JSON.stringify({ postUrn: published[i].postUrn })
       });
       var data = await res.json();
@@ -2584,6 +2644,8 @@ window.handleKbFileUpload = handleKbFileUpload;
 window.removeKbFile = removeKbFile;
 window.saveGithubToken = saveGithubToken;
 window.lockApp = lockApp;
+window.saveWebhookSecret = saveWebhookSecret;
+window.generateWebhookSecret = generateWebhookSecret;
 window.sendToQueue = sendToQueue;
 window.cancelFromQueue = cancelFromQueue;
 window.queueScheduledPost = queueScheduledPost;
