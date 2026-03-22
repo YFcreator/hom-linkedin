@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com https://api.github.com https://*.app.n8n.cloud; img-src 'self' data:;">
 <title>HOM — LinkedIn Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
@@ -292,9 +293,13 @@ textarea.post-editor:focus { border-color:var(--gold); }
       <div class="api-dot" id="api-dot"></div>
       <span id="api-status-text">Claude API</span>
     </div>
-    <div class="api-status">
+    <div class="api-status" style="margin-bottom:12px;">
       <div class="api-dot" id="n8n-sidebar-dot"></div>
       <span id="n8n-sidebar-text">LinkedIn N8N</span>
+    </div>
+    <div class="nav-item" onclick="lockApp()" style="padding:8px 24px; color:var(--red); font-size:11px; border-left:none;">
+      <span class="nav-icon" style="font-size:12px;">🔒</span>
+      <span>Blocca sessione</span>
     </div>
   </div>
 </aside>
@@ -683,6 +688,25 @@ textarea.post-editor:focus { border-color:var(--gold); }
     </div>
 
     <div class="card" style="margin-bottom:24px;">
+      <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold); margin-bottom:16px;">Coda Pubblicazione Automatica (Google Sheet)</div>
+      <div style="font-size:13px; color:var(--gray-light); line-height:1.6; margin-bottom:16px;">
+        Webhook per inviare i post pianificati alla coda di pubblicazione. N8N li salva in un Google Sheet e un workflow Cron li pubblica automaticamente alla data prevista.
+      </div>
+      <div class="field">
+        <label>Webhook — Gestione coda</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="n8n-queue-url" placeholder="https://tuo-n8n.app/webhook/coda-post" style="flex:1;">
+          <button class="btn btn-outline btn-sm" onclick="saveN8nConfig()">Salva</button>
+        </div>
+        <div style="font-size:11px; color:var(--gray); font-family:'DM Mono',monospace; margin-top:4px;">Riceve JSON: { action: "queue"|"cancel", id, text, scheduledDate, brand }. Scrive/rimuove dal Google Sheet.</div>
+      </div>
+      <div id="queue-status" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+        <div class="api-dot" id="queue-dot"></div>
+        <span style="font-size:11px; color:var(--gray); font-family:'DM Mono',monospace;" id="queue-status-text">Coda non configurata</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px;">
       <div style="font-family:'Syne',sans-serif; font-weight:600; font-size:16px; color:var(--gold); margin-bottom:16px;">GitHub — Persistenza Knowledge Base</div>
       <div class="field">
         <label>GitHub Personal Access Token</label>
@@ -713,11 +737,17 @@ textarea.post-editor:focus { border-color:var(--gold); }
       <div class="card" style="margin-top:8px;">
         <div style="font-size:12px; color:var(--gray-light); line-height:1.7;">
           <strong style="color:var(--white);">1. Workflow "Pubblica Post" (Pagina HOM)</strong><br>
-          Trigger: Webhook (POST) → LinkedIn: Create Post (con OAuth2, Organization URN) → Respond to Webhook<br><br>
+          Trigger: Webhook (POST) → LinkedIn: Create Post (con OAuth2, Organization URN: 107656085) → Respond to Webhook<br><br>
           <strong style="color:var(--white);">2. Workflow "Pubblica Post" (Profilo Personale)</strong><br>
           Trigger: Webhook (POST) → LinkedIn: Create Post (con OAuth2, come persona) → Respond to Webhook<br><br>
           <strong style="color:var(--white);">3. Workflow "Leggi Metriche"</strong><br>
-          Trigger: Webhook (POST) → LinkedIn: Get Post Stats → Respond to Webhook
+          Trigger: Webhook (POST) → LinkedIn: Get Post Stats → Respond to Webhook<br><br>
+          <strong style="color:var(--gold);">4. Workflow "Coda Post" (Gestione Google Sheet)</strong><br>
+          Trigger: Webhook (POST) → IF action="queue": Google Sheets: Append Row (id, text, topic, scheduledDate, brand, label, status="pending") / IF action="cancel": Google Sheets: Delete Row (cerca per id) → Respond to Webhook {success: true}<br><br>
+          <strong style="color:var(--gold);">5. Workflow "Pubblica Automatico" (Cron)</strong><br>
+          Trigger: Schedule (ogni 15 min) → Google Sheets: Read All Rows → Filter: scheduledDate ≤ NOW() AND status="pending" → Per ogni riga: IF brand="personal" → chiama webhook Pubblica Personale, ELSE → chiama webhook Pubblica HOM → Google Sheets: Update Row (status="published") → (opzionale) Delete Row dal foglio<br><br>
+          <strong style="color:var(--gray-light);">Google Sheet — colonne richieste:</strong><br>
+          id | text | topic | scheduledDate | brand | label | status
         </div>
       </div>
     </details>
@@ -825,6 +855,8 @@ var _publishId = null;
 var _proposals = [];
 var _selectedBrand = 'hom'; // 'hom' or 'personal'
 var _kbFiles = []; // uploaded file texts
+var _lastApiCall = 0; // rate limiting
+var API_COOLDOWN_MS = 5000; // min 5 sec between API calls
 
 // ===== SECURITY: CRYPTO ENGINE =====
 // Sensitive data is encrypted in localStorage using AES-GCM with a PIN-derived key.
@@ -835,7 +867,7 @@ var _autoLockTimer = null;
 var AUTO_LOCK_MINUTES = 15;
 var MAX_PIN_ATTEMPTS = 5;
 var LOCKOUT_SECONDS = 60;
-var SENSITIVE_KEYS = ['hom_api_key', 'hom_github_token', 'hom_n8n_publish', 'hom_n8n_metrics', 'hom_n8n_personal_publish'];
+var SENSITIVE_KEYS = ['hom_api_key', 'hom_github_token', 'hom_n8n_publish', 'hom_n8n_metrics', 'hom_n8n_personal_publish', 'hom_n8n_queue'];
 
 // SHA-256 hash via Web Crypto
 async function sha256(str) {
@@ -844,17 +876,27 @@ async function sha256(str) {
   return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
 }
 
-// Derive AES-GCM key from PIN + salt using PBKDF2
+// Derive AES-GCM key from PIN + salt using PBKDF2 (600k iterations per OWASP 2023)
 async function deriveKey(pin, salt) {
   var enc = new TextEncoder();
   var keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: enc.encode(salt), iterations: 600000, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     false,
     ['encrypt', 'decrypt']
   );
+}
+
+// Timing-safe string comparison (prevents timing attacks on PIN hash)
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  var result = 0;
+  for (var i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
 }
 
 // Encrypt a string with AES-GCM
@@ -1026,7 +1068,7 @@ async function handleAuth() {
       showToast('Sicurezza aggiornata a SHA-256 + AES', 'success');
     } else {
       var hash = await sha256(salt + pin);
-      if (hash === storedHash) {
+      if (timingSafeEqual(hash, storedHash)) {
         _cryptoKey = await deriveKey(pin, salt);
         await decryptAllSecrets(_cryptoKey);
         _pinAttempts = 0;
@@ -1198,7 +1240,18 @@ function buildSystemPrompt(kb) {
 }
 
 // ===== GENERATE POSTS =====
+function checkRateLimit() {
+  var now = Date.now();
+  if (now - _lastApiCall < API_COOLDOWN_MS) {
+    showToast('Attendi qualche secondo tra una richiesta e l\'altra', 'error');
+    return false;
+  }
+  _lastApiCall = now;
+  return true;
+}
+
 async function generatePosts() {
+  if (!checkRateLimit()) return;
   var apiKey = secureGet('hom_api_key');
   if (!apiKey) { showToast('Configura la API Key nelle Impostazioni', 'error'); return; }
 
@@ -1244,7 +1297,7 @@ async function generatePosts() {
     showToast(_proposals.length + ' proposte generate!', 'success');
 
   } catch(e) {
-    showToast('Errore: ' + e.message, 'error');
+    showToast('Errore generazione post', 'error'); console.error(e);
   }
 
   btn.disabled = false;
@@ -1354,6 +1407,7 @@ function renderPianoPending() {
 }
 
 async function distributePlan() {
+  if (!checkRateLimit()) return;
   var pending = posts.filter(function(p) { return p.status === 'pending' && !p.scheduledDate; });
   if (!pending.length) { showToast('Nessun post da distribuire — genera prima i post', 'error'); return; }
 
@@ -1405,13 +1459,30 @@ async function distributePlan() {
     });
 
     savePosts();
+
+    // Send all scheduled posts to the automatic queue
+    if (isQueueConfigured()) {
+      var queued = 0;
+      for (var qi = 0; qi < plan.length; qi++) {
+        var qPost = posts.find(function(p) { return String(p.id) === String(plan[qi].id); });
+        if (qPost && qPost.scheduledDate) {
+          var qOk = await sendToQueue(qPost, 'queue');
+          if (qOk) { qPost.queued = true; queued++; }
+        }
+      }
+      savePosts();
+      if (queued > 0) showToast(plan.length + ' post distribuiti — ' + queued + ' inviati alla coda automatica!', 'success');
+      else showToast(plan.length + ' post distribuiti nel calendario (coda non raggiungibile)', 'error');
+    } else {
+      showToast(plan.length + ' post distribuiti nel calendario (pubblica manualmente o configura la coda automatica)', 'success');
+    }
+
     renderPianoPending();
     renderCalendar();
     updateBadge();
-    showToast(plan.length + ' post distribuiti nel calendario!', 'success');
 
   } catch(e) {
-    showToast('Errore distribuzione: ' + e.message, 'error');
+    showToast('Errore distribuzione piano', 'error'); console.error(e);
   }
 
   btn.disabled = false;
@@ -1475,12 +1546,13 @@ function renderMonthList(monthPosts, monthName) {
       var timeLabel = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
       var isPublished = p.status === 'published';
       var brandTag = p.brand === 'personal' ? '<span class="post-card-topic" style="background:rgba(100,149,237,0.15); color:var(--blue);">Personale</span>' : '';
+      var queueTag = p.queued ? '<span class="post-card-topic" style="background:rgba(58,124,90,0.15); color:var(--green);">In coda automatica</span>' : '';
       return '<div class="post-card">' +
         '<div class="post-card-header">' +
           '<span class="post-card-status ' + (isPublished ? 'published' : 'scheduled') + '">' + (isPublished ? 'Pubblicato' : 'Pianificato') + '</span>' +
           '<span class="post-card-date">' + dateLabel + ' · ' + timeLabel + '</span>' +
           '<span class="post-card-topic">' + escapeHtml(p.topic || '') + '</span>' +
-          brandTag +
+          brandTag + queueTag +
         '</div>' +
         '<div class="post-card-text">' + escapeHtml((p.text || '').substring(0, 180)) + '</div>' +
         '<div class="post-card-actions">' +
@@ -1503,10 +1575,14 @@ function changeMonth(dir) {
   renderCalendar();
 }
 
-function unschedule(id) {
+async function unschedule(id) {
   var idx = posts.findIndex(function(p) { return p.id === id; });
   if (idx === -1) return;
+  if (posts[idx].queued) {
+    await cancelFromQueue(posts[idx]);
+  }
   posts[idx].scheduledDate = null;
+  posts[idx].queued = false;
   savePosts();
   renderPianoPending();
   renderCalendar();
@@ -1617,8 +1693,12 @@ function saveEdit() {
 }
 
 // ===== POST MANAGEMENT =====
-function deletePost(id) {
+async function deletePost(id) {
   if (!confirm('Eliminare questo post?')) return;
+  var post = posts.find(function(p) { return p.id === id; });
+  if (post && post.queued) {
+    await cancelFromQueue(post);
+  }
   posts = posts.filter(function(p) { return p.id !== id; });
   savePosts();
   renderPianoPending();
@@ -2016,15 +2096,16 @@ async function syncKbToGithub() {
       showToast('Knowledge Base sincronizzata su GitHub!', 'success');
     } else {
       var errData = await res.json();
-      showToast('Errore GitHub: ' + (errData.message || res.status), 'error');
+      showToast('Errore sincronizzazione GitHub (codice ' + res.status + ')', 'error'); console.error(errData);
     }
   } catch(e) {
-    showToast('Errore sincronizzazione: ' + e.message, 'error');
+    showToast('Errore sincronizzazione GitHub', 'error'); console.error(e);
   }
 }
 
 // ===== PROFILE =====
 async function generateProfile() {
+  if (!checkRateLimit()) return;
   var apiKey = secureGet('hom_api_key');
   if (!apiKey) { showToast('Configura prima la API Key', 'error'); showView('impostazioni'); return; }
   var btn = document.getElementById('gen-profile-btn');
@@ -2064,6 +2145,7 @@ async function generateProfile() {
 
 // ===== PROFILE AUDIT =====
 async function generateProfileAudit() {
+  if (!checkRateLimit()) return;
   var apiKey = secureGet('hom_api_key');
   if (!apiKey) { showToast('Configura prima la API Key', 'error'); return; }
 
@@ -2121,7 +2203,7 @@ async function generateProfileAudit() {
     showToast('Audit completato! ' + auditItems.length + ' proposte di modifica', 'success');
 
   } catch(e) {
-    showToast('Errore audit: ' + e.message, 'error');
+    showToast('Errore audit profilo', 'error'); console.error(e);
   }
 
   btn.disabled = false;
@@ -2148,14 +2230,39 @@ function copyText(id) {
 }
 
 // ===== N8N INTEGRATION =====
+function isValidWebhookUrl(url) {
+  if (!url || !url.startsWith('https://')) return false;
+  try {
+    var parsed = new URL(url);
+    // Allow only known N8N domains and common webhook providers
+    var allowed = ['.app.n8n.cloud', '.n8n.io', 'hooks.zapier.com', 'hook.integromat.com', 'make.com'];
+    var hostname = parsed.hostname;
+    return allowed.some(function(domain) { return hostname.endsWith(domain) || hostname === domain.replace('.', ''); });
+  } catch(e) { return false; }
+}
+
 function saveN8nConfig() {
   var pubUrl = document.getElementById('n8n-publish-url').value.trim();
   var metUrl = document.getElementById('n8n-metrics-url').value.trim();
   var personalPubUrl = document.getElementById('n8n-personal-publish-url').value.trim();
   var saved = 0;
-  if (pubUrl && pubUrl.startsWith('http')) { secureSet('hom_n8n_publish', pubUrl); document.getElementById('n8n-publish-url').value = ''; saved++; }
-  if (metUrl && metUrl.startsWith('http')) { secureSet('hom_n8n_metrics', metUrl); document.getElementById('n8n-metrics-url').value = ''; saved++; }
-  if (personalPubUrl && personalPubUrl.startsWith('http')) { secureSet('hom_n8n_personal_publish', personalPubUrl); document.getElementById('n8n-personal-publish-url').value = ''; saved++; }
+  if (pubUrl) {
+    if (!isValidWebhookUrl(pubUrl)) { showToast('URL pubblicazione non valido — solo HTTPS su domini N8N/Zapier/Make', 'error'); return; }
+    secureSet('hom_n8n_publish', pubUrl); document.getElementById('n8n-publish-url').value = ''; saved++;
+  }
+  if (metUrl) {
+    if (!isValidWebhookUrl(metUrl)) { showToast('URL metriche non valido — solo HTTPS su domini N8N/Zapier/Make', 'error'); return; }
+    secureSet('hom_n8n_metrics', metUrl); document.getElementById('n8n-metrics-url').value = ''; saved++;
+  }
+  if (personalPubUrl) {
+    if (!isValidWebhookUrl(personalPubUrl)) { showToast('URL personale non valido — solo HTTPS su domini N8N/Zapier/Make', 'error'); return; }
+    secureSet('hom_n8n_personal_publish', personalPubUrl); document.getElementById('n8n-personal-publish-url').value = ''; saved++;
+  }
+  var queueUrl = document.getElementById('n8n-queue-url').value.trim();
+  if (queueUrl) {
+    if (!isValidWebhookUrl(queueUrl)) { showToast('URL coda non valido — solo HTTPS su domini N8N/Zapier/Make', 'error'); return; }
+    secureSet('hom_n8n_queue', queueUrl); document.getElementById('n8n-queue-url').value = ''; saved++;
+  }
   checkN8n();
   if (saved > 0) showToast(saved + ' webhook salvati e criptati', 'success');
   else showToast('Inserisci almeno un URL webhook', 'error');
@@ -2177,21 +2284,87 @@ function checkN8n() {
     if (personalUrl) status.push('Personale');
     txt.textContent = status.length > 0 ? status.join(' + ') + ' attiv' + (status.length > 1 ? 'e' : 'a') : 'Non configurato';
   }
+  var queueUrl = secureGet('hom_n8n_queue');
+  var qDot = document.getElementById('queue-dot');
+  var qTxt = document.getElementById('queue-status-text');
+  if (qDot) { qDot.classList.toggle('ok', !!queueUrl); }
+  if (qTxt) { qTxt.textContent = queueUrl ? 'Coda automatica attiva' : 'Coda non configurata'; }
   var sDot = document.getElementById('n8n-sidebar-dot');
   var sTxt = document.getElementById('n8n-sidebar-text');
-  if (sDot) { sDot.classList.toggle('ok', hasPub); }
-  if (sTxt) { sTxt.textContent = hasPub ? 'LinkedIn attivo' : 'LinkedIn N8N'; }
+  if (sDot) { sDot.classList.toggle('ok', hasPub || !!queueUrl); }
+  if (sTxt) { sTxt.textContent = (hasPub || queueUrl) ? 'LinkedIn attivo' : 'LinkedIn N8N'; }
   // Don't load sensitive values into inputs — show only status
   var pubInput = document.getElementById('n8n-publish-url');
   var metInput = document.getElementById('n8n-metrics-url');
   var persInput = document.getElementById('n8n-personal-publish-url');
+  var qInput = document.getElementById('n8n-queue-url');
   if (pubInput && pubUrl && !pubInput.value) pubInput.placeholder = 'Configurato (inserisci nuovo URL per aggiornare)';
   if (metInput && metUrl && !metInput.value) metInput.placeholder = 'Configurato (inserisci nuovo URL per aggiornare)';
   if (persInput && personalUrl && !persInput.value) persInput.placeholder = 'Configurato (inserisci nuovo URL per aggiornare)';
+  if (qInput && queueUrl && !qInput.value) qInput.placeholder = 'Configurato (inserisci nuovo URL per aggiornare)';
 }
 
 function isN8nConfigured() {
   return !!secureGet('hom_n8n_publish');
+}
+
+function isQueueConfigured() {
+  return !!secureGet('hom_n8n_queue');
+}
+
+/// ===== QUEUE: SEND TO GOOGLE SHEET VIA N8N =====
+async function sendToQueue(post, action) {
+  var queueUrl = secureGet('hom_n8n_queue');
+  if (!queueUrl) return false;
+  try {
+    var res = await fetch(queueUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: action, // "queue" or "cancel"
+        id: String(post.id),
+        text: post.text || '',
+        topic: post.topic || '',
+        scheduledDate: post.scheduledDate || '',
+        brand: post.brand || 'hom',
+        label: post.label || ''
+      })
+    });
+    var data = await res.json();
+    return data && data.success !== false;
+  } catch(e) {
+    console.error('Queue error:', e);
+    return false;
+  }
+}
+
+// Queue a post after scheduling
+async function queueScheduledPost(post) {
+  if (!isQueueConfigured()) return;
+  var ok = await sendToQueue(post, 'queue');
+  if (ok) {
+    var idx = posts.findIndex(function(p) { return p.id === post.id; });
+    if (idx !== -1) {
+      posts[idx].queued = true;
+      savePosts();
+    }
+    showToast('Post inviato alla coda automatica', 'success');
+  } else {
+    showToast('Errore invio alla coda — il post resta pianificato ma non verrà pubblicato automaticamente', 'error');
+  }
+}
+
+// Cancel a post from queue
+async function cancelFromQueue(post) {
+  if (!isQueueConfigured() || !post.queued) return;
+  var ok = await sendToQueue(post, 'cancel');
+  if (ok) {
+    var idx = posts.findIndex(function(p) { return p.id === post.id; });
+    if (idx !== -1) {
+      posts[idx].queued = false;
+      savePosts();
+    }
+  }
 }
 
 // ===== READY POSTS =====
@@ -2228,16 +2401,17 @@ function renderReadyPosts() {
       var dateLabel = d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
       var timeLabel = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
       var brandTag = p.brand === 'personal' ? '<span class="post-card-topic" style="background:rgba(100,149,237,0.15); color:var(--blue);">Personale</span>' : '';
+      var queueTag = p.queued ? '<span class="post-card-topic" style="background:rgba(58,124,90,0.15); color:var(--green);">In coda automatica</span>' : '';
       return '<div class="post-card" style="border-color:var(--gold);">' +
         '<div class="post-card-header">' +
           '<span class="post-card-status ready">Pronto</span>' +
           '<span class="post-card-date">' + dateLabel + ' · ' + timeLabel + '</span>' +
           '<span class="post-card-topic">' + escapeHtml(p.topic || '') + '</span>' +
-          brandTag +
+          brandTag + queueTag +
         '</div>' +
         '<div class="post-card-text" style="-webkit-line-clamp:none; display:block;">' + escapeHtml(p.text || '') + '</div>' +
         '<div class="post-card-actions">' +
-          '<button class="btn btn-success" onclick="openPublish(' + p.id + ')">Pubblica su LinkedIn</button>' +
+          (p.queued ? '<span style="font-size:11px; color:var(--green); font-family:\'DM Mono\',monospace;">Pubblicazione automatica prevista</span>' : '<button class="btn btn-success" onclick="openPublish(' + p.id + ')">Pubblica su LinkedIn</button>') +
           '<button class="btn btn-outline btn-sm" onclick="openEdit(' + p.id + ')">Modifica</button>' +
           '<button class="btn btn-ghost btn-sm" onclick="unschedule(' + p.id + ')">Rimanda</button>' +
         '</div>' +
@@ -2291,7 +2465,7 @@ async function publishViaN8n() {
     showToast('Pubblicato su LinkedIn!', 'success');
 
   } catch(e) {
-    showToast('Errore N8N: ' + e.message, 'error');
+    showToast('Errore pubblicazione LinkedIn', 'error'); console.error(e);
   }
 
   btn.disabled = false;
@@ -2409,6 +2583,11 @@ window.selectBrand = selectBrand;
 window.handleKbFileUpload = handleKbFileUpload;
 window.removeKbFile = removeKbFile;
 window.saveGithubToken = saveGithubToken;
+window.lockApp = lockApp;
+window.sendToQueue = sendToQueue;
+window.cancelFromQueue = cancelFromQueue;
+window.queueScheduledPost = queueScheduledPost;
+window.isQueueConfigured = isQueueConfigured;
 
 // Start with auth check
 checkAuth();
