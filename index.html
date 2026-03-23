@@ -151,6 +151,19 @@ textarea.post-editor:focus { border-color:var(--gold); }
 .toast.success { border-left:3px solid var(--green); }
 .toast.error { border-left:3px solid var(--red); }
 
+/* ACTIVITY LOG */
+.activity-item { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border-left:3px solid var(--border); margin-bottom:8px; background:var(--surface); border-radius:0 8px 8px 0; transition:all 0.2s; }
+.activity-item:hover { background:rgba(255,255,255,0.04); }
+.activity-item.log-success { border-left-color:var(--green); }
+.activity-item.log-error { border-left-color:var(--red); }
+.activity-item.log-warning { border-left-color:var(--gold); }
+.activity-item.log-info { border-left-color:var(--blue); }
+.activity-icon { font-size:16px; flex-shrink:0; width:20px; text-align:center; margin-top:1px; }
+.activity-content { flex:1; }
+.activity-message { font-size:13px; line-height:1.5; color:var(--white); }
+.activity-time { font-family:'DM Mono',monospace; font-size:10px; color:var(--gray); margin-top:4px; }
+.activity-badge { background:var(--red); color:white; font-size:9px; font-family:'DM Mono',monospace; padding:2px 6px; border-radius:10px; font-weight:600; margin-left:auto; }
+
 /* KPI CHART BAR */
 .kpi-bar-wrap { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
 .kpi-bar-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-light); min-width:100px; text-align:right; }
@@ -272,6 +285,11 @@ textarea.post-editor:focus { border-color:var(--gold); }
   <div class="nav-item" onclick="showView('analytics')">
     <span class="nav-icon">📊</span>
     <span>Analytics</span>
+  </div>
+  <div class="nav-item" onclick="showView('attivita')">
+    <span class="nav-icon">🔔</span>
+    <span>Attività</span>
+    <span class="nav-badge activity-badge" id="badge-activity" style="display:none">0</span>
   </div>
 
   <span class="nav-section">Configurazione</span>
@@ -465,7 +483,7 @@ textarea.post-editor:focus { border-color:var(--gold); }
     <div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
       <button class="btn btn-outline btn-sm filter-btn active" data-filter="all" onclick="filterPosts('all')">Tutti</button>
       <button class="btn btn-outline btn-sm filter-btn" data-filter="published" onclick="filterPosts('published')">Pubblicati</button>
-      <button class="btn btn-outline btn-sm filter-btn" data-filter="pending" onclick="filterPosts('pending')">In attesa</button>
+      <button class="btn btn-outline btn-sm filter-btn" data-filter="pending" onclick="filterPosts('pending')">Da pianificare</button>
       <button class="btn btn-outline btn-sm filter-btn" data-filter="scheduled" onclick="filterPosts('scheduled')">Pianificati</button>
       <input type="text" id="storico-search" placeholder="Cerca..." oninput="renderStorico()"
         style="flex:1; min-width:180px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px; padding:9px 14px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:13px; outline:none;">
@@ -609,6 +627,20 @@ textarea.post-editor:focus { border-color:var(--gold); }
         </div>
         <div id="profile-featured" style="font-size:14px; line-height:1.6; white-space:pre-wrap; padding:16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:6px;"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== ATTIVITÀ ==================== -->
+  <div class="view" id="view-attivita">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Attività recenti</div>
+        <div class="page-sub">Tutto quello che succede nell'app, in ordine cronologico.</div>
+      </div>
+      <button class="btn btn-ghost" onclick="clearActivityLog()">Svuota log</button>
+    </div>
+    <div id="activity-log-list">
+      <div class="empty-state"><span class="icon">🔔</span><div class="title">Nessuna attività</div><div class="desc">Le azioni che fai nell'app verranno registrate qui.</div></div>
     </div>
   </div>
 
@@ -823,29 +855,20 @@ textarea.post-editor:focus { border-color:var(--gold); }
   </div>
 </div>
 
-<!-- ==================== MODAL: PUBBLICA POST ==================== -->
+<!-- ==================== MODAL: AGGIORNA METRICHE ==================== -->
 <div class="modal-overlay" id="publish-modal">
   <div class="modal" style="max-width:500px;">
     <div class="modal-header">
-      <div class="modal-title" id="pub-modal-title">Pubblica su LinkedIn</div>
+      <div class="modal-title" id="pub-modal-title">Aggiorna metriche</div>
       <button class="btn btn-ghost" onclick="closePublishModal()">✕</button>
     </div>
 
     <!-- Anteprima post -->
     <div id="pub-preview" style="margin-bottom:20px;"></div>
 
-    <!-- Modo N8N: pubblica automaticamente -->
-    <div id="pub-mode-n8n" style="display:none;">
-      <div style="font-size:13px; color:var(--gray-light); margin-bottom:16px; line-height:1.5;">Il post verrà pubblicato direttamente su LinkedIn tramite N8N. Le metriche verranno lette in automatico.</div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn btn-success" onclick="publishViaN8n()" id="pub-n8n-btn" style="flex:1; justify-content:center; padding:14px; font-size:14px;">Pubblica ora su LinkedIn</button>
-        <button class="btn btn-ghost" onclick="closePublishModal()">Annulla</button>
-      </div>
-    </div>
-
-    <!-- Modo manuale: segna come pubblicato -->
+    <!-- Aggiorna metriche di un post pubblicato -->
     <div id="pub-mode-manual">
-      <div style="font-size:13px; color:var(--gray-light); margin-bottom:16px; line-height:1.5;">Pubblica manualmente su LinkedIn, poi torna qui per segnarlo e aggiungere le metriche.</div>
+      <div style="font-size:13px; color:var(--gray-light); margin-bottom:16px; line-height:1.5;">Aggiorna le metriche di questo post pubblicato su LinkedIn.</div>
       <div class="field"><label>URL del post LinkedIn (opzionale)</label><input type="text" id="pub-url" placeholder="https://linkedin.com/feed/update/..."></div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
         <div class="field"><label>Impressioni</label><input type="number" id="pub-impressions" placeholder="0" min="0"></div>
@@ -854,7 +877,7 @@ textarea.post-editor:focus { border-color:var(--gold); }
         <div class="field"><label>Condivisioni</label><input type="number" id="pub-shares" placeholder="0" min="0"></div>
       </div>
       <div style="display:flex; gap:8px; margin-top:8px;">
-        <button class="btn btn-success" onclick="confirmPublish()" style="flex:1; justify-content:center;">Segna come pubblicato</button>
+        <button class="btn btn-success" onclick="confirmPublish()" style="flex:1; justify-content:center;">Salva metriche</button>
         <button class="btn btn-ghost" onclick="closePublishModal()">Annulla</button>
       </div>
     </div>
@@ -862,7 +885,7 @@ textarea.post-editor:focus { border-color:var(--gold); }
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="alert" aria-live="polite" aria-atomic="true"></div>
 
 <script>
 // ==========================================================
@@ -881,6 +904,75 @@ var _selectedBrand = 'hom'; // 'hom' or 'personal'
 var _kbFiles = []; // uploaded file texts
 var _lastApiCall = 0; // rate limiting
 var API_COOLDOWN_MS = 5000; // min 5 sec between API calls
+
+// ===== ACTIVITY LOG =====
+var ACTIVITY_LOG_KEY = 'hom_activity_log';
+var ACTIVITY_LOG_MAX = 50;
+
+function logActivity(message, type) {
+  type = type || 'info';
+  var log = [];
+  try { log = JSON.parse(localStorage.getItem(ACTIVITY_LOG_KEY) || '[]'); } catch(e) { log = []; }
+  var entry = {
+    id: Date.now(),
+    message: message,
+    type: type, // 'success', 'error', 'warning', 'info'
+    timestamp: new Date().toISOString()
+  };
+  log.unshift(entry);
+  if (log.length > ACTIVITY_LOG_MAX) log = log.slice(0, ACTIVITY_LOG_MAX);
+  localStorage.setItem(ACTIVITY_LOG_KEY, JSON.stringify(log));
+  renderActivityLog();
+  updateActivityBadge();
+}
+
+function getActivityLog() {
+  try { return JSON.parse(localStorage.getItem(ACTIVITY_LOG_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function renderActivityLog() {
+  var el = document.getElementById('activity-log-list');
+  if (!el) return;
+  var log = getActivityLog();
+  if (!log.length) {
+    el.innerHTML = '<div class="empty-state"><span class="icon">🔔</span><div class="title">Nessuna attività</div><div class="desc">Le azioni che fai nell\'app verranno registrate qui.</div></div>';
+    return;
+  }
+  var icons = { success: '✓', error: '✗', warning: '⚠', info: 'ℹ' };
+  var validTypes = ['success', 'error', 'warning', 'info'];
+  el.innerHTML = log.map(function(entry) {
+    var safeType = validTypes.indexOf(entry.type) !== -1 ? entry.type : 'info';
+    var d = new Date(entry.timestamp);
+    var timeStr = d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }) + ' · ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    return '<div class="activity-item log-' + safeType + '">' +
+      '<span class="activity-icon">' + (icons[safeType] || 'ℹ') + '</span>' +
+      '<div class="activity-content">' +
+        '<div class="activity-message">' + escapeHtml(entry.message) + '</div>' +
+        '<div class="activity-time">' + timeStr + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function updateActivityBadge() {
+  var badge = document.getElementById('badge-activity');
+  if (!badge) return;
+  var log = getActivityLog();
+  var errors = log.filter(function(e) { return e.type === 'error'; });
+  if (errors.length > 0) {
+    badge.textContent = errors.length;
+    badge.style.display = 'inline';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function clearActivityLog() {
+  localStorage.removeItem(ACTIVITY_LOG_KEY);
+  renderActivityLog();
+  updateActivityBadge();
+  showToast('Log attività svuotato', 'success');
+}
 
 // ===== SECURITY: CRYPTO ENGINE =====
 // Sensitive data is encrypted in localStorage using AES-GCM with a PIN-derived key.
@@ -1149,7 +1241,7 @@ document.getElementById('auth-pin').addEventListener('keydown', function(e) {
 
 // ===== INIT =====
 function initApp() {
-  posts = JSON.parse(localStorage.getItem('hom_posts') || '[]');
+  try { posts = JSON.parse(localStorage.getItem('hom_posts') || '[]'); } catch(e) { posts = []; console.error('Corrupted posts data, reset'); }
   loadKnowledge();
   loadKbFiles();
   checkApiKey();
@@ -1202,6 +1294,7 @@ function showView(id) {
   if (id === 'piano') { renderReadyPosts(); renderPianoPending(); renderCalendar(); }
   if (id === 'storico') renderStorico();
   if (id === 'analytics') renderAnalytics();
+  if (id === 'attivita') { renderActivityLog(); updateActivityBadge(); }
 }
 
 // ===== API =====
@@ -1233,7 +1326,7 @@ async function testApiKey() {
     });
     if (res.ok) showToast('API funzionante!', 'success');
     else showToast('Errore API: ' + res.status, 'error');
-  } catch(e) { showToast('Errore connessione', 'error'); }
+  } catch(e) { showToast('Connessione non riuscita. Controlla internet e riprova.', 'error'); }
 }
 
 function buildSystemPrompt(kb) {
@@ -1314,6 +1407,7 @@ async function generatePosts() {
     var data = await res.json();
     if (!res.ok) throw new Error(data.error ? data.error.message : 'Errore API');
 
+    if (!data.content || !data.content[0] || !data.content[0].text) throw new Error('Risposta AI non valida');
     var raw = data.content[0].text.trim();
     var jsonMatch = raw.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error('Risposta AI non valida');
@@ -1321,9 +1415,10 @@ async function generatePosts() {
     _proposals = JSON.parse(jsonMatch[0]);
     renderProposals();
     showToast(_proposals.length + ' proposte generate!', 'success');
+    logActivity(_proposals.length + ' proposte AI generate — revisiona e approva quelle che vuoi pubblicare', 'info');
 
   } catch(e) {
-    showToast('Errore generazione post', 'error'); console.error(e);
+    showToast('Non riesco a generare i post. Controlla la connessione e riprova.', 'error'); console.error(e);
   }
 
   btn.disabled = false;
@@ -1357,7 +1452,7 @@ function approveSingle(i) {
   var p = _proposals[i];
   if (!p) return;
   posts.unshift({
-    id: Date.now() + i,
+    id: Date.now() * 1000 + Math.floor(Math.random() * 1000),
     text: p.text,
     status: 'pending',
     created: new Date().toISOString(),
@@ -1371,6 +1466,7 @@ function approveSingle(i) {
   renderProposals();
   updateBadge();
   showToast('Post approvato!', 'success');
+  logActivity('Post approvato: "' + (p.topic || p.text.substring(0, 40)) + '"', 'success');
 }
 
 function discardSingle(i) {
@@ -1379,9 +1475,10 @@ function discardSingle(i) {
 }
 
 function approveAll() {
+  var baseId = Date.now() * 1000;
   _proposals.forEach(function(p, i) {
     posts.unshift({
-      id: Date.now() + i,
+      id: baseId + i,
       text: p.text,
       status: 'pending',
       created: new Date().toISOString(),
@@ -1397,6 +1494,7 @@ function approveAll() {
   renderProposals();
   updateBadge();
   showToast(n + ' post approvati!', 'success');
+  logActivity(n + ' post approvati e aggiunti alla lista', 'success');
 }
 
 function discardAll() {
@@ -1472,6 +1570,7 @@ async function distributePlan() {
     });
 
     var data = await res.json();
+    if (!data.content || !data.content[0] || !data.content[0].text) throw new Error('Risposta AI non valida');
     var raw = data.content[0].text.trim();
     var jsonMatch = raw.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error('Risposta non valida');
@@ -1497,10 +1596,19 @@ async function distributePlan() {
         }
       }
       savePosts();
-      if (queued > 0) showToast(plan.length + ' post distribuiti — ' + queued + ' inviati alla coda automatica!', 'success');
-      else showToast(plan.length + ' post distribuiti nel calendario (coda non raggiungibile)', 'error');
+      if (queued > 0) {
+        var firstDate = plan[0] ? plan[0].date : '';
+        var lastDate = plan[plan.length - 1] ? plan[plan.length - 1].date : '';
+        var dateRange = firstDate && lastDate ? ' dal ' + new Date(firstDate).toLocaleDateString('it-IT', {day:'2-digit', month:'short'}) + ' al ' + new Date(lastDate).toLocaleDateString('it-IT', {day:'2-digit', month:'short'}) : '';
+        showToast(plan.length + ' post programmati' + dateRange + ' — pubblicazione automatica attiva', 'success');
+        logActivity('Piano distribuito: ' + plan.length + ' post programmati' + dateRange + '. Verranno pubblicati automaticamente da N8N.', 'success');
+      } else {
+        showToast(plan.length + ' post distribuiti nel calendario — coda N8N non raggiungibile', 'error');
+        logActivity('Piano distribuito: ' + plan.length + ' post nel calendario, ma la coda N8N non è raggiungibile. I post NON verranno pubblicati automaticamente.', 'error');
+      }
     } else {
-      showToast(plan.length + ' post distribuiti nel calendario (pubblica manualmente o configura la coda automatica)', 'success');
+      showToast(plan.length + ' post distribuiti nel calendario — configura N8N per la pubblicazione automatica', 'warning');
+      logActivity('Piano distribuito: ' + plan.length + ' post nel calendario. Coda N8N non configurata — configura i webhook nelle Impostazioni per attivare la pubblicazione automatica.', 'warning');
     }
 
     renderPianoPending();
@@ -1508,7 +1616,8 @@ async function distributePlan() {
     updateBadge();
 
   } catch(e) {
-    showToast('Errore distribuzione piano', 'error'); console.error(e);
+    showToast('Non riesco a distribuire il piano. Controlla la connessione e riprova.', 'error'); console.error(e);
+    logActivity('Errore durante la distribuzione del piano editoriale: ' + (e.message || 'errore sconosciuto'), 'error');
   }
 
   btn.disabled = false;
@@ -1570,40 +1679,33 @@ function renderCalendar() {
 
 function renderMonthList(monthPosts, monthName) {
   var el = document.getElementById('cal-month-posts');
-  if (!monthPosts.length) { el.innerHTML = ''; return; }
+  if (!monthPosts.length) { el.innerHTML = '<div style="text-align:center; padding:24px; color:var(--gray); font-size:13px;">Nessun post programmato in ' + monthName + '</div>'; return; }
   var sorted = monthPosts.slice().sort(function(a, b) { return a.scheduledDate.localeCompare(b.scheduledDate); });
-  el.innerHTML = '<div class="section-label">' + sorted.length + ' post in ' + monthName + '</div>' +
+  el.innerHTML = '<div class="section-label" style="font-size:14px; margin-bottom:16px;">Post programmati · ' + monthName + ' <span style="color:var(--gold);">(' + sorted.length + ')</span></div>' +
     sorted.map(function(p) {
       var d = new Date(p.scheduledDate);
       var dateLabel = d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
       var timeLabel = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
       var isPublished = p.status === 'published';
       var brandTag = p.brand === 'personal' ? '<span class="post-card-topic" style="background:rgba(100,149,237,0.15); color:var(--blue);">Personale</span>' : '';
-      var queueTag = p.queued ? '<span class="post-card-topic" style="background:rgba(58,124,90,0.15); color:var(--green);">In coda automatica</span>' : '';
-      var isFuture = new Date(p.scheduledDate) > new Date();
-      var publishBtn = '';
-      if (!isPublished) {
-        if (p.queued) {
-          publishBtn = '<span style="font-size:11px; color:var(--green); font-family:\'DM Mono\',monospace;">In coda — pubblicazione ' + dateLabel + ' ' + timeLabel + '</span>';
-        } else if (isFuture && isQueueConfigured()) {
-          publishBtn = '<button class="btn btn-success btn-sm" onclick="queueScheduledPost(posts.find(function(x){return x.id===' + p.id + '}))">Invia alla coda</button>';
-        } else {
-          publishBtn = '<button class="btn btn-success btn-sm" onclick="openPublish(' + p.id + ')">Pubblica su LinkedIn</button>';
-        }
-      }
+      var statusLabel = isPublished ? 'Pubblicato' : 'Pianificato';
+      var statusClass = isPublished ? 'published' : 'scheduled';
+      var scheduleInfo = isPublished ?
+        '<span style="font-size:11px; color:var(--green); font-family:\'DM Mono\',monospace;">Pubblicato il ' + new Date(p.publishedAt || p.scheduledDate).toLocaleDateString('it-IT') + '</span>' :
+        '<span style="font-size:11px; color:var(--gold); font-family:\'DM Mono\',monospace;">Pubblicazione automatica · ' + dateLabel + ' ore ' + timeLabel + '</span>';
       return '<div class="post-card">' +
         '<div class="post-card-header">' +
-          '<span class="post-card-status ' + (isPublished ? 'published' : (p.queued ? 'ready' : 'scheduled')) + '">' + (isPublished ? 'Pubblicato' : (p.queued ? 'In coda' : 'Pianificato')) + '</span>' +
+          '<span class="post-card-status ' + statusClass + '">' + statusLabel + '</span>' +
           '<span class="post-card-date">' + dateLabel + ' · ' + timeLabel + '</span>' +
           '<span class="post-card-topic">' + escapeHtml(p.topic || '') + '</span>' +
-          brandTag + queueTag +
+          brandTag +
         '</div>' +
         '<div class="post-card-text">' + escapeHtml((p.text || '').substring(0, 180)) + '</div>' +
         '<div class="post-card-actions">' +
-          publishBtn +
-          '<button class="btn btn-outline btn-sm" onclick="openEdit(' + p.id + ')">Modifica</button>' +
+          scheduleInfo +
+          (!isPublished ? '<button class="btn btn-outline btn-sm" onclick="openEdit(' + p.id + ')">Modifica</button>' : '') +
+          (isPublished ? '<button class="btn btn-outline btn-sm" onclick="openPublish(' + p.id + ')">Aggiorna metriche</button>' : '') +
           (!isPublished ? '<button class="btn btn-ghost btn-sm" onclick="unschedule(' + p.id + ')">Rimuovi dal piano</button>' : '') +
-          '<button class="btn btn-danger btn-sm" onclick="deletePost(' + p.id + ')">Elimina</button>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -1614,6 +1716,16 @@ function showDayPosts(dateStr) {
   if (el) el.scrollIntoView({ behavior: 'smooth' });
 }
 
+// Delegated click handler for queue buttons (avoids XSS via inline onclick)
+document.addEventListener('click', function(e) {
+  var queueBtn = e.target.closest('.queue-post-btn');
+  if (queueBtn) {
+    var postId = Number(queueBtn.getAttribute('data-post-id'));
+    var post = posts.find(function(x) { return x.id === postId; });
+    if (post) queueScheduledPost(post);
+  }
+});
+
 function changeMonth(dir) {
   calendarDate.setMonth(calendarDate.getMonth() + dir);
   renderCalendar();
@@ -1623,7 +1735,12 @@ async function unschedule(id) {
   var idx = posts.findIndex(function(p) { return p.id === id; });
   if (idx === -1) return;
   if (posts[idx].queued) {
-    await cancelFromQueue(posts[idx]);
+    try {
+      await cancelFromQueue(posts[idx]);
+    } catch(e) {
+      showToast('Errore rimozione dalla coda N8N — ritenta', 'error');
+      return;
+    }
   }
   posts[idx].scheduledDate = null;
   posts[idx].queued = false;
@@ -1631,7 +1748,9 @@ async function unschedule(id) {
   renderPianoPending();
   renderCalendar();
   updateBadge();
+  var removedTopic = posts[idx].topic || posts[idx].text.substring(0, 40);
   showToast('Post rimosso dal piano', 'success');
+  logActivity('Post rimosso dal calendario: "' + removedTopic + '" — non verrà pubblicato', 'warning');
 }
 
 // ===== PUBLISH FLOW =====
@@ -1650,18 +1769,10 @@ function openPublish(id) {
     '<div class="li-body">' + escapeHtml(post.text || '') + '</div></div>';
 
   var title = document.getElementById('pub-modal-title');
-  title.textContent = isAlreadyPublished ? 'Aggiorna metriche' : 'Pubblica su LinkedIn';
+  title.textContent = 'Aggiorna metriche';
 
-  var webhookUrl = post.brand === 'personal' ? secureGet('hom_n8n_personal_publish') : secureGet('hom_n8n_publish');
-  var n8nMode = document.getElementById('pub-mode-n8n');
   var manualMode = document.getElementById('pub-mode-manual');
-  if (webhookUrl && !isAlreadyPublished) {
-    n8nMode.style.display = 'block';
-    manualMode.style.display = 'none';
-  } else {
-    n8nMode.style.display = 'none';
-    manualMode.style.display = 'block';
-  }
+  manualMode.style.display = 'block';
 
   document.getElementById('pub-url').value = post.linkedinUrl || '';
   document.getElementById('pub-impressions').value = (post.metrics && post.metrics.impressions) || '';
@@ -1698,7 +1809,8 @@ function confirmPublish() {
   renderStorico();
   renderAnalytics();
   updateBadge();
-  showToast('Post pubblicato!', 'success');
+  showToast('Metriche aggiornate!', 'success');
+  logActivity('Metriche aggiornate: "' + (posts[idx].topic || (posts[idx].text || '').substring(0, 40)) + '"', 'info');
 }
 
 // ===== EDIT MODAL =====
@@ -1734,6 +1846,7 @@ function saveEdit() {
   renderCalendar();
   renderStorico();
   showToast('Post aggiornato', 'success');
+  logActivity('Post modificato: "' + (posts[idx].topic || posts[idx].text.substring(0, 40)) + '"' + (posts[idx].scheduledDate ? ' — la versione aggiornata verrà pubblicata il ' + new Date(posts[idx].scheduledDate).toLocaleDateString('it-IT', {day:'2-digit', month:'short'}) + ' ore ' + new Date(posts[idx].scheduledDate).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}) : ''), 'info');
 }
 
 // ===== POST MANAGEMENT =====
@@ -1750,7 +1863,9 @@ async function deletePost(id) {
   renderStorico();
   renderAnalytics();
   updateBadge();
+  var deletedTopic = post ? (post.topic || (post.text || '').substring(0, 40)) : 'sconosciuto';
   showToast('Post eliminato', 'success');
+  logActivity('Post eliminato: "' + deletedTopic + '"' + (post && post.scheduledDate ? ' — era programmato per il ' + new Date(post.scheduledDate).toLocaleDateString('it-IT') : ''), 'warning');
 }
 
 function resetAllPosts() {
@@ -1791,10 +1906,12 @@ function renderStorico() {
     var isScheduled = p.status === 'pending' && p.scheduledDate;
     var isPending = p.status === 'pending' && !p.scheduledDate;
     var isPublished = p.status === 'published';
-    var statusLabel = isPending ? 'In attesa' : isScheduled ? 'Pianificato' : 'Pubblicato';
+    var statusLabel = isPending ? 'Da pianificare' : isScheduled ? 'Pianificato' : 'Pubblicato';
     var statusClass = isPending ? 'pending' : isScheduled ? 'scheduled' : 'published';
     var dateStr = p.publishedAt || p.scheduledDate || p.created;
-    var date = new Date(dateStr).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+    var dateObj = dateStr ? new Date(dateStr) : new Date();
+    if (isNaN(dateObj.getTime())) dateObj = new Date();
+    var date = dateObj.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
     var brandTag = p.brand === 'personal' ? '<span class="post-card-topic" style="background:rgba(100,149,237,0.15); color:var(--blue);">Personale</span>' : '';
 
     var metricsHtml = '';
@@ -1822,7 +1939,6 @@ function renderStorico() {
       metricsHtml +
       '<div class="post-card-actions">' +
         (isPublished ? '<button class="btn btn-outline btn-sm" onclick="openPublish(' + p.id + ')">Aggiorna metriche</button>' : '') +
-        (!isPublished ? '<button class="btn btn-success btn-sm" onclick="openPublish(' + p.id + ')">Pubblica</button>' : '') +
         '<button class="btn btn-outline btn-sm" onclick="openEdit(' + p.id + ')">Modifica</button>' +
         '<button class="btn btn-danger btn-sm" onclick="deletePost(' + p.id + ')">Elimina</button>' +
       '</div>' +
@@ -1965,7 +2081,7 @@ function loadKnowledge() {
     values: "Indipendenza come vantaggio competitivo. Song-driven model. Specializzazione, non competizione di scala. Costruire comunità reali attorno a sistemi di valori chiari.",
     audience: "Investitori del settore musicale, artisti indie, addetti ai lavori, manager, professionisti dell'industria creativa, appassionati di cultura musicale italiana."
   };
-  var saved = JSON.parse(localStorage.getItem('hom_knowledge') || '{}');
+  var saved = {}; try { saved = JSON.parse(localStorage.getItem('hom_knowledge') || '{}'); } catch(e) { console.error('Corrupted knowledge data, reset'); }
   // Migrate old fields
   if (saved.fluid && !saved.monksta) saved.monksta = saved.fluid;
   if (saved.other && !saved.stolengoods) {
@@ -1985,7 +2101,7 @@ function loadKnowledge() {
 
 // ===== KB FILE UPLOAD =====
 function loadKbFiles() {
-  _kbFiles = JSON.parse(localStorage.getItem('hom_kb_files') || '[]');
+  try { _kbFiles = JSON.parse(localStorage.getItem('hom_kb_files') || '[]'); } catch(e) { _kbFiles = []; console.error('Corrupted KB files data, reset'); }
 }
 
 function handleKbFileUpload(event) {
@@ -2167,6 +2283,7 @@ async function generateProfile() {
       body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
     });
     var data = await res.json();
+    if (!data.content || !data.content[0] || !data.content[0].text) throw new Error('Risposta AI non valida');
     var text = data.content[0].text;
     var h = text.match(/TITOLO:\n([\s\S]*?)(?=\n\nABOUT:)/);
     var a = text.match(/ABOUT:\n([\s\S]*?)(?=\n\nIN EVIDENZA:)/);
@@ -2227,6 +2344,7 @@ async function generateProfileAudit() {
     var data = await res.json();
     if (!res.ok) throw new Error(data.error ? data.error.message : 'Errore');
 
+    if (!data.content || !data.content[0] || !data.content[0].text) throw new Error('Risposta AI non valida');
     var raw = data.content[0].text.trim();
     var jsonMatch = raw.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error('Risposta non valida');
@@ -2439,11 +2557,13 @@ async function queueScheduledPost(post) {
       savePosts();
     }
     showToast('Post inviato alla coda automatica', 'success');
+    logActivity('Post programmato per pubblicazione automatica: "' + (post.topic || (post.text || '').substring(0, 40)) + '" — ' + new Date(post.scheduledDate).toLocaleDateString('it-IT', {day:'2-digit', month:'short'}) + ' ore ' + new Date(post.scheduledDate).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}), 'success');
     renderCalendar();
     renderReadyPosts();
     updateBadge();
   } else {
     showToast('Errore invio alla coda — il post resta pianificato ma non verrà pubblicato automaticamente', 'error');
+    logActivity('Errore invio coda N8N: "' + (post.topic || (post.text || '').substring(0, 40)) + '" — il post non verrà pubblicato automaticamente. Verifica le impostazioni N8N.', 'error');
   }
 }
 
@@ -2486,27 +2606,26 @@ function renderReadyPosts() {
   if (!ready.length) { el.innerHTML = ''; return; }
 
   el.innerHTML = '<div class="ready-banner">' +
-    '<div class="ready-title">' + ready.length + ' post pronti per la pubblicazione</div>' +
-    '<div class="ready-sub">L\'orario pianificato è passato — conferma la pubblicazione</div>' +
+    '<div class="ready-title">' + ready.length + ' post in pubblicazione</div>' +
+    '<div class="ready-sub">L\'orario pianificato è passato — N8N li pubblica automaticamente. Se non vedi aggiornamenti, verifica N8N.</div>' +
     '</div>' +
     ready.map(function(p) {
       var d = new Date(p.scheduledDate);
       var dateLabel = d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
       var timeLabel = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
       var brandTag = p.brand === 'personal' ? '<span class="post-card-topic" style="background:rgba(100,149,237,0.15); color:var(--blue);">Personale</span>' : '';
-      var queueTag = p.queued ? '<span class="post-card-topic" style="background:rgba(58,124,90,0.15); color:var(--green);">In coda automatica</span>' : '';
       return '<div class="post-card" style="border-color:var(--gold);">' +
         '<div class="post-card-header">' +
-          '<span class="post-card-status ready">Pronto</span>' +
+          '<span class="post-card-status scheduled">In pubblicazione</span>' +
           '<span class="post-card-date">' + dateLabel + ' · ' + timeLabel + '</span>' +
           '<span class="post-card-topic">' + escapeHtml(p.topic || '') + '</span>' +
-          brandTag + queueTag +
+          brandTag +
         '</div>' +
         '<div class="post-card-text" style="-webkit-line-clamp:none; display:block;">' + escapeHtml(p.text || '') + '</div>' +
         '<div class="post-card-actions">' +
-          (p.queued ? '<span style="font-size:11px; color:var(--green); font-family:\'DM Mono\',monospace;">Pubblicazione automatica prevista</span>' : '<button class="btn btn-success" onclick="openPublish(' + p.id + ')">Pubblica su LinkedIn</button>') +
+          '<span style="font-size:11px; color:var(--gold); font-family:\'DM Mono\',monospace;">Pubblicazione automatica in corso</span>' +
           '<button class="btn btn-outline btn-sm" onclick="openEdit(' + p.id + ')">Modifica</button>' +
-          '<button class="btn btn-ghost btn-sm" onclick="unschedule(' + p.id + ')">Rimanda</button>' +
+          '<button class="btn btn-ghost btn-sm" onclick="unschedule(' + p.id + ')">Rimuovi dal piano</button>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -2553,10 +2672,21 @@ async function publishViaN8n() {
     var data = await res.json();
     if (!data.success) throw new Error(data.error || 'Errore pubblicazione');
 
+    // Validate webhook response data
+    var safeLinkedinUrl = null;
+    if (data.linkedinUrl && typeof data.linkedinUrl === 'string') {
+      try {
+        var parsedUrl = new URL(data.linkedinUrl);
+        if (parsedUrl.protocol === 'https:' && (parsedUrl.hostname === 'www.linkedin.com' || parsedUrl.hostname === 'linkedin.com')) {
+          safeLinkedinUrl = data.linkedinUrl;
+        }
+      } catch(e) { /* invalid URL, ignore */ }
+    }
+
     posts[idx].status = 'published';
     posts[idx].publishedAt = new Date().toISOString();
-    posts[idx].linkedinUrl = data.linkedinUrl || null;
-    posts[idx].postUrn = data.postUrn || null;
+    posts[idx].linkedinUrl = safeLinkedinUrl;
+    posts[idx].postUrn = (typeof data.postUrn === 'string') ? data.postUrn : null;
     posts[idx].metrics = { impressions: 0, reactions: 0, comments: 0, shares: 0 };
 
     savePosts();
@@ -2568,13 +2698,15 @@ async function publishViaN8n() {
     renderAnalytics();
     updateBadge();
     showToast('Pubblicato su LinkedIn!', 'success');
+    logActivity('Post pubblicato su LinkedIn: "' + (post.topic || (post.text || '').substring(0, 40)) + '"' + (safeLinkedinUrl ? '' : ''), 'success');
 
   } catch(e) {
-    showToast('Errore pubblicazione LinkedIn', 'error'); console.error(e);
+    showToast('Pubblicazione LinkedIn non riuscita. Verifica che N8N sia attivo e riprova.', 'error'); console.error(e);
+    logActivity('Errore pubblicazione LinkedIn: "' + (post.topic || (post.text || '').substring(0, 40)) + '" — ' + (e.message || 'errore sconosciuto') + '. Verifica N8N.', 'error');
   }
 
   btn.disabled = false;
-  btn.textContent = 'Pubblica ora su LinkedIn';
+  btn.textContent = 'Pubblicazione in corso...';
 }
 
 // ===== FETCH METRICS VIA N8N =====
@@ -2616,7 +2748,9 @@ async function fetchAllMetrics() {
   renderStorico();
   btn.disabled = false;
   btn.textContent = 'Aggiorna metriche da LinkedIn';
+  var failed = published.length - updated;
   showToast(updated + ' post aggiornati con metriche LinkedIn', 'success');
+  logActivity('Metriche aggiornate da LinkedIn: ' + updated + ' post' + (failed > 0 ? ' (' + failed + ' non aggiornati)' : ''), failed > 0 ? 'warning' : 'success');
 }
 
 // ===== UTILITIES =====
@@ -2695,6 +2829,8 @@ window.sendToQueue = sendToQueue;
 window.cancelFromQueue = cancelFromQueue;
 window.queueScheduledPost = queueScheduledPost;
 window.isQueueConfigured = isQueueConfigured;
+window.clearActivityLog = clearActivityLog;
+window.logActivity = logActivity;
 
 // Start with auth check
 checkAuth();
