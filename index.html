@@ -915,10 +915,11 @@ async function deriveKey(pin, salt) {
 
 // Timing-safe string comparison (prevents timing attacks on PIN hash)
 function timingSafeEqual(a, b) {
-  if (a.length !== b.length) return false;
-  var result = 0;
-  for (var i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  // Constant-time comparison: no early exit on length mismatch
+  var len = Math.max(a.length, b.length);
+  var result = a.length ^ b.length; // non-zero if lengths differ
+  for (var i = 0; i < len; i++) {
+    result |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
   }
   return result === 0;
 }
@@ -1549,14 +1550,21 @@ function renderCalendar() {
       return '<div class="cal-post-pill ' + cls + '" title="' + escapeHtml((p.topic || p.text || '').substring(0, 60)) + '">' + escapeHtml((p.topic || '').substring(0, 18) || (p.text || '').substring(0, 18)) + '</div>';
     }).join('');
     if (dayPosts.length > 2) pills += '<div style="font-size:9px; color:var(--gray); text-align:center;">+' + (dayPosts.length - 2) + '</div>';
-    html += '<div class="cal-day' + (isToday ? ' today' : '') + (dayPosts.length ? ' has-post' : '') + '" onclick="showDayPosts(\'' + dateStr + '\')">' +
+    var safeDateStr = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? dateStr : '';
+    html += '<div class="cal-day' + (isToday ? ' today' : '') + (dayPosts.length ? ' has-post' : '') + '" data-date="' + safeDateStr + '">' +
       '<span>' + d + '</span>' + pills + '</div>';
   }
   var remaining = 42 - (startDow + daysInMonth);
   for (var i = 1; i <= remaining; i++) {
     html += '<div class="cal-day other-month"><span>' + i + '</span></div>';
   }
-  document.getElementById('cal-grid').innerHTML = html;
+  var calGrid = document.getElementById('cal-grid');
+  calGrid.innerHTML = html;
+  // Delegated click handler — no inline onclick, prevents XSS via dateStr
+  calGrid.onclick = function(e) {
+    var day = e.target.closest('.cal-day[data-date]');
+    if (day && day.dataset.date) showDayPosts(day.dataset.date);
+  };
   renderMonthList(monthPosts, months[month]);
 }
 
@@ -1572,16 +1580,27 @@ function renderMonthList(monthPosts, monthName) {
       var isPublished = p.status === 'published';
       var brandTag = p.brand === 'personal' ? '<span class="post-card-topic" style="background:rgba(100,149,237,0.15); color:var(--blue);">Personale</span>' : '';
       var queueTag = p.queued ? '<span class="post-card-topic" style="background:rgba(58,124,90,0.15); color:var(--green);">In coda automatica</span>' : '';
+      var isFuture = new Date(p.scheduledDate) > new Date();
+      var publishBtn = '';
+      if (!isPublished) {
+        if (p.queued) {
+          publishBtn = '<span style="font-size:11px; color:var(--green); font-family:\'DM Mono\',monospace;">In coda — pubblicazione ' + dateLabel + ' ' + timeLabel + '</span>';
+        } else if (isFuture && isQueueConfigured()) {
+          publishBtn = '<button class="btn btn-success btn-sm" onclick="queueScheduledPost(posts.find(function(x){return x.id===' + p.id + '}))">Invia alla coda</button>';
+        } else {
+          publishBtn = '<button class="btn btn-success btn-sm" onclick="openPublish(' + p.id + ')">Pubblica su LinkedIn</button>';
+        }
+      }
       return '<div class="post-card">' +
         '<div class="post-card-header">' +
-          '<span class="post-card-status ' + (isPublished ? 'published' : 'scheduled') + '">' + (isPublished ? 'Pubblicato' : 'Pianificato') + '</span>' +
+          '<span class="post-card-status ' + (isPublished ? 'published' : (p.queued ? 'ready' : 'scheduled')) + '">' + (isPublished ? 'Pubblicato' : (p.queued ? 'In coda' : 'Pianificato')) + '</span>' +
           '<span class="post-card-date">' + dateLabel + ' · ' + timeLabel + '</span>' +
           '<span class="post-card-topic">' + escapeHtml(p.topic || '') + '</span>' +
           brandTag + queueTag +
         '</div>' +
         '<div class="post-card-text">' + escapeHtml((p.text || '').substring(0, 180)) + '</div>' +
         '<div class="post-card-actions">' +
-          (!isPublished ? '<button class="btn btn-success btn-sm" onclick="openPublish(' + p.id + ')">Pubblica su LinkedIn</button>' : '') +
+          publishBtn +
           '<button class="btn btn-outline btn-sm" onclick="openEdit(' + p.id + ')">Modifica</button>' +
           (!isPublished ? '<button class="btn btn-ghost btn-sm" onclick="unschedule(' + p.id + ')">Rimuovi dal piano</button>' : '') +
           '<button class="btn btn-danger btn-sm" onclick="deletePost(' + p.id + ')">Elimina</button>' +
@@ -2220,7 +2239,7 @@ async function generateProfileAudit() {
         (item.current ? '<div class="audit-current">Attuale: ' + escapeHtml(item.current) + '</div>' : '') +
         '<div class="audit-proposed">Proposta: ' + escapeHtml(item.proposed) + '</div>' +
         '<div style="font-size:11px; color:var(--gray); margin-top:8px; font-style:italic;">' + escapeHtml(item.reason) + '</div>' +
-        '<button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="copyAuditText(this, \'' + escapeHtml(item.proposed).replace(/'/g, "\\'") + '\')">Copia proposta</button>' +
+        '<button class="btn btn-ghost btn-sm" style="margin-top:8px;" data-copy="' + escapeHtml(item.proposed).replace(/"/g, '&quot;') + '" onclick="copyAuditText(this)">Copia proposta</button>' +
       '</div>';
     }).join('');
 
@@ -2235,7 +2254,8 @@ async function generateProfileAudit() {
   btn.textContent = 'Audit Completo';
 }
 
-function copyAuditText(btn, text) {
+function copyAuditText(btn) {
+  var text = btn.getAttribute('data-copy') || '';
   navigator.clipboard.writeText(text).then(function() { showToast('Copiato!', 'success'); }).catch(function() {
     showToast('Errore copia', 'error');
   });
@@ -2256,13 +2276,23 @@ function copyText(id) {
 
 // ===== N8N INTEGRATION =====
 function isValidWebhookUrl(url) {
-  if (!url || !url.startsWith('https://')) return false;
+  if (!url || typeof url !== 'string') return false;
   try {
     var parsed = new URL(url);
-    // Allow only known N8N domains and common webhook providers
-    var allowed = ['.app.n8n.cloud', '.n8n.io', 'hooks.zapier.com', 'hook.integromat.com', 'make.com'];
-    var hostname = parsed.hostname;
-    return allowed.some(function(domain) { return hostname.endsWith(domain) || hostname === domain.replace('.', ''); });
+    // Enforce HTTPS only
+    if (parsed.protocol !== 'https:') return false;
+    var hostname = parsed.hostname.toLowerCase();
+    // Allow only known webhook provider domains
+    var allowed = [
+      '.app.n8n.cloud', '.n8n.io',
+      'hooks.zapier.com', 'hook.integromat.com',
+      '.hook.eu2.make.com', '.hook.us1.make.com', '.hook.make.com'
+    ];
+    return allowed.some(function(domain) {
+      return domain.charAt(0) === '.'
+        ? hostname.endsWith(domain) || hostname === domain.substring(1)
+        : hostname === domain;
+    });
   } catch(e) { return false; }
 }
 
@@ -2409,6 +2439,9 @@ async function queueScheduledPost(post) {
       savePosts();
     }
     showToast('Post inviato alla coda automatica', 'success');
+    renderCalendar();
+    renderReadyPosts();
+    updateBadge();
   } else {
     showToast('Errore invio alla coda — il post resta pianificato ma non verrà pubblicato automaticamente', 'error');
   }
@@ -2486,6 +2519,18 @@ async function publishViaN8n() {
   if (idx === -1) return;
 
   var post = posts[idx];
+
+  // Se il post ha data futura e la coda è configurata, invia alla coda invece di pubblicare subito
+  if (post.scheduledDate && new Date(post.scheduledDate) > new Date() && isQueueConfigured()) {
+    closePublishModal();
+    await queueScheduledPost(post);
+    renderCalendar();
+    renderPianoPending();
+    renderReadyPosts();
+    updateBadge();
+    return;
+  }
+
   var webhookUrl = post.brand === 'personal' ? secureGet('hom_n8n_personal_publish') : secureGet('hom_n8n_publish');
   if (!webhookUrl) { showToast('Configura il webhook N8N nelle Impostazioni', 'error'); return; }
 
